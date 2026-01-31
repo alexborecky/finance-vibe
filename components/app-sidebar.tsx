@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { LayoutDashboard, Wallet, PiggyBank, Settings, LogOut, Menu, Coins, CreditCard } from "lucide-react"
+import { LayoutDashboard, Wallet, PiggyBank, Settings, LogOut, Menu, Coins, CreditCard, Landmark } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -35,6 +35,11 @@ const navItems = [
         title: "Expenses",
         url: "/expenses",
         icon: CreditCard,
+    },
+    {
+        title: "Savings",
+        url: "/savings",
+        icon: Landmark,
     },
     {
         title: "Goals",

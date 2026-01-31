@@ -59,6 +59,8 @@ const formSchema = z.object({
 
 interface AddExpenseDialogProps {
     defaultCategory?: 'need' | 'want' | 'saving';
+    defaultDate?: Date;
+    defaultAmount?: string;
     existingTransaction?: Transaction | null;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -67,6 +69,8 @@ interface AddExpenseDialogProps {
 
 export function AddExpenseDialog({
     defaultCategory = 'need',
+    defaultDate,
+    defaultAmount,
     existingTransaction,
     open: controlledOpen,
     onOpenChange: setControlledOpen,
@@ -84,8 +88,8 @@ export function AddExpenseDialog({
         defaultValues: {
             category: defaultCategory,
             description: "",
-            amount: "",
-            date: new Date(),
+            amount: defaultAmount || "",
+            date: defaultDate || new Date(),
             isRecurring: false,
         },
     })
@@ -105,13 +109,13 @@ export function AddExpenseDialog({
                 form.reset({
                     category: defaultCategory,
                     description: "",
-                    amount: "",
-                    date: new Date(),
+                    amount: defaultAmount || "",
+                    date: defaultDate || new Date(),
                     isRecurring: false,
                 })
             }
         }
-    }, [isOpen, existingTransaction, defaultCategory, form])
+    }, [isOpen, existingTransaction, defaultCategory, defaultDate, defaultAmount, form])
 
     const category = form.watch("category")
 
