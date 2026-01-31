@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Finance Vibe 💸
 
-## Getting Started
+![Finance Vibe Hero](./public/images/hero.png)
 
-First, run the development server:
+**Finance Vibe** is a premium personal finance application designed to turn budgeting from a chore into a rewarding experience. Built on the proven **50/30/20 rule**, it helps you allocate your income efficiently while maximizing your savings potential.
 
+## ✨ Key Features
+
+### 🧩 The Savings Matrix
+Discover your true saving potential. Our unique formula calculates your final savings by combining your fixed target (20% of income) with any leftovers from your **Needs** and **Wants** budgets. 
+- **Dynamic Tracking**: Watch your savings target grow as you spend less than planned.
+- **Manual Overrides**: Set custom savings goals for specific months when life happens.
+- **Visual Progress**: Real-time annual projections keep you motivated.
+
+### 💳 Effortless Expense Management
+- **Smart Categorization**: Instantly sort transactions into Needs, Wants, or Savings.
+- **Recurring Expenses**: Automate your fixed costs (Rent, Utilities, Netflix) so your budget is always up to date.
+- **Drag & Drop**: Effortlessly organize your finances with a modern, interactive interface.
+
+### 📈 Financial Overview
+- **Interactive Dashboard**: Get a bird's-eye view of your financial health.
+- **Goal Tracking**: Visualize your progress toward big purchases or long-term safety nets.
+- **Clean Aesthetics**: A glassmorphism-inspired design that makes managing money feel premium.
+
+## 🚀 Tech Stack
+
+- **Framework**: [Next.js 15+](https://nextjs.org/) (App Router, React 19)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Components**: [Radix UI](https://www.radix-ui.com/) & [Shadcn/UI](https://ui.shadcn.com/)
+- **State Management**: [Zustand](https://zustand-demo.pmnd.rs/) (Client-side persistence)
+- **Validation**: [Zod](https://zod.dev/) & [React Hook Form](https://react-hook-form.com/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+
+## 🛠️ Getting Started
+
+### 1. Clone & Install
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/alexborecky/finance-vibe.git
+cd finance-vibe
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Run Locally
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) to start your financial journey.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📜 50/30/20 Rule Implementation
+Finance Vibe follows the standard financial recommendation for healthy spending:
+- **50% Needs**: Essential costs like rent, groceries, and insurance.
+- **30% Wants**: Lifestyle choices like dining out, hobbies, and shopping.
+- **20% Savings/Debt**: Building your future and paying down liabilities.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+Built with ❤️ by [Alexandr Borecky](https://github.com/alexborecky)
