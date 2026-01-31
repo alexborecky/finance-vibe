@@ -25,7 +25,7 @@ export default function ExpensesPage() {
     // Dialog State
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
-    const [defaultCategory, setDefaultCategory] = useState<'need' | 'want' | 'saving'>('need')
+    const [defaultCategory, setDefaultCategory] = useState<'need' | 'want'>('need')
 
     // 1. Calculate Monthly Limits
     const monthlyIncome = calculateMonthlyIncome(incomeConfig)
@@ -88,7 +88,7 @@ export default function ExpensesPage() {
         }),
     };
 
-    const openAddDialog = (category: 'need' | 'want' | 'saving' = 'need') => {
+    const openAddDialog = (category: 'need' | 'want' = 'need') => {
         setEditingTransaction(null)
         setDefaultCategory(category)
         setIsDialogOpen(true)

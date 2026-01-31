@@ -6,6 +6,12 @@ Finance Vibe is a modern, intuitive personal finance tracker designed to help yo
 
 # Changelog
 
+## [0.1.1] - 2026-01-31
+
+### Changed
+- **Expense Category UI**: Replaced the category dropdown with a modern Segmented Control (Tabs) for faster switching between budget buckets.
+- **Workflow Optimization**: Removed the "Saving" category from the Add Expense dialog to streamline the separation between daily spending (Needs/Wants) and the new dedicated Savings module.
+
 ## [0.1.0] - 2026-01-31
 
 ### Added

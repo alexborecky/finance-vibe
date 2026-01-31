@@ -34,10 +34,11 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"
+    Tabs,
+    TabsList,
+    TabsTrigger
+} from "@/components/ui/tabs"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { useFinanceStore } from "@/lib/store"
@@ -58,7 +59,7 @@ const formSchema = z.object({
 })
 
 interface AddExpenseDialogProps {
-    defaultCategory?: 'need' | 'want' | 'saving';
+    defaultCategory?: 'need' | 'want';
     defaultDate?: Date;
     defaultAmount?: string;
     existingTransaction?: Transaction | null;
@@ -156,25 +157,25 @@ export function AddExpenseDialog({
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        {/* Category First */}
+                        {/* Category Segmented Control */}
                         <FormField
                             control={form.control}
                             name="category"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Category</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a bucket" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="need">Need (50%)</SelectItem>
-                                            <SelectItem value="want">Want (30%)</SelectItem>
-                                            <SelectItem value="saving">Saving (20%)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <FormControl>
+                                        <Tabs
+                                            value={field.value !== 'saving' ? field.value : 'need'}
+                                            onValueChange={field.onChange}
+                                            className="w-full"
+                                        >
+                                            <TabsList className="grid w-full grid-cols-2">
+                                                <TabsTrigger value="need">Need (50%)</TabsTrigger>
+                                                <TabsTrigger value="want">Want (30%)</TabsTrigger>
+                                            </TabsList>
+                                        </Tabs>
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
