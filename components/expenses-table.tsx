@@ -26,9 +26,10 @@ interface ExpensesTableProps {
     onAdd?: () => void;
     onEdit?: (transaction: Transaction) => void;
     onDelete?: (id: string) => void;
+    onFixBalance?: () => void;
 }
 
-export function ExpensesTable({ id, title, transactions, limit, spent, onAdd, onEdit, onDelete }: ExpensesTableProps) {
+export function ExpensesTable({ id, title, transactions, limit, spent, onAdd, onEdit, onDelete, onFixBalance }: ExpensesTableProps) {
     const { setNodeRef, isOver } = useDroppable({
         id: id,
     })
@@ -81,8 +82,13 @@ export function ExpensesTable({ id, title, transactions, limit, spent, onAdd, on
                                 }
                             </Badge>
                         </div>
+                        {onFixBalance && remaining < 0 && id === 'need' && (
+                            <Button size="sm" variant="destructive" onClick={onFixBalance} className="h-8 px-2 text-xs ml-2">
+                                <RefreshCw className="h-3.5 w-3.5 mr-1" /> Fix Balance
+                            </Button>
+                        )}
                         {onAdd && (
-                            <Button size="sm" variant="outline" onClick={onAdd} className="h-8 px-2 text-xs">
+                            <Button size="sm" variant="outline" onClick={onAdd} className="h-8 px-2 text-xs ml-2">
                                 <Plus className="h-3.5 w-3.5 mr-1" /> Add
                             </Button>
                         )}

@@ -52,5 +52,8 @@ Finance Vibe follows the standard financial recommendation for healthy spending:
 - **30% Wants**: Lifestyle choices like dining out, hobbies, and shopping.
 - **20% Savings/Debt**: Building your future and paying down liabilities.
 
+## 📄 Changelog
+Stay up to date with the latest changes and features in our [Changelog](./CHANGELOG.md).
+
 ---
 Built with ❤️ by [Alexandr Borecky](https://github.com/alexborecky)

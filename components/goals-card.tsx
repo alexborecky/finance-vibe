@@ -3,7 +3,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { useFinanceStore } from "@/lib/store"
-import { PiggyBank, Laptop, Home } from "lucide-react"
+import { PiggyBank, Laptop, Home, Edit2 } from "lucide-react"
+import { AddGoalDialog } from "./add-goal-dialog"
+import { Button } from "./ui/button"
 
 export function GoalsCard() {
     const { goals } = useFinanceStore()
@@ -14,21 +16,30 @@ export function GoalsCard() {
 
     return (
         <Card className="h-full shadow-md">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <PiggyBank className="h-5 w-5 text-indigo-500" />
-                    Financial Goals
-                </CardTitle>
-                <CardDescription>Track your progress towards specific targets.</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <div className="space-y-1">
+                    <CardTitle className="flex items-center gap-2">
+                        <PiggyBank className="h-5 w-5 text-indigo-500" />
+                        Financial Goals
+                    </CardTitle>
+                    <CardDescription>Track your progress towards targets.</CardDescription>
+                </div>
+                <AddGoalDialog>
+                    <Button size="sm" variant="outline">Add Goal</Button>
+                </AddGoalDialog>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 pt-4">
 
                 {/* Short Term Section */}
                 {shortTermGoals.length > 0 && (
                     <div className="space-y-4">
                         <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Short Term (From 30% Wants)</h4>
                         {shortTermGoals.map(goal => (
-                            <GoalItem key={goal.id} goal={goal} icon={Laptop} />
+                            <AddGoalDialog key={goal.id} existingGoal={goal}>
+                                <div className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50 p-2 rounded-md transition-colors">
+                                    <GoalItem goal={goal} icon={Laptop} />
+                                </div>
+                            </AddGoalDialog>
                         ))}
                     </div>
                 )}
@@ -38,13 +49,22 @@ export function GoalsCard() {
                     <div className="space-y-4 pt-2 border-t">
                         <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mt-4">Long Term (From 20% Savings)</h4>
                         {longTermGoals.map(goal => (
-                            <GoalItem key={goal.id} goal={goal} icon={Home} />
+                            <AddGoalDialog key={goal.id} existingGoal={goal}>
+                                <div className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50 p-2 rounded-md transition-colors">
+                                    <GoalItem goal={goal} icon={Home} />
+                                </div>
+                            </AddGoalDialog>
                         ))}
                     </div>
                 )}
 
                 {goals.length === 0 && (
-                    <p className="text-sm text-center text-muted-foreground py-4">No goals set yet. Add one to start tracking!</p>
+                    <div className="text-center py-8">
+                        <p className="text-sm text-muted-foreground mb-4">No goals set yet.</p>
+                        <AddGoalDialog>
+                            <Button variant="outline">Create your first goal</Button>
+                        </AddGoalDialog>
+                    </div>
                 )}
             </CardContent>
         </Card>
@@ -63,7 +83,10 @@ function GoalItem({ goal, icon: Icon }: { goal: any, icon: any }) {
                         <Icon className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                     </div>
                     <div>
-                        <div className="font-medium text-sm">{goal.name}</div>
+                        <div className="font-medium text-sm flex items-center gap-2">
+                            {goal.name}
+                            <Edit2 className="h-3 w-3 text-muted-foreground opacity-50" />
+                        </div>
                         <div className="text-xs text-muted-foreground">
                             {goal.currentAmount.toLocaleString('cs-CZ')} Kč of {goal.targetAmount.toLocaleString('cs-CZ')} Kč
                         </div>

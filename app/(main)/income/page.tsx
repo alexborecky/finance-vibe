@@ -7,8 +7,9 @@ import { calculateMonthlyIncome, calculateBuckets } from "@/lib/finance-engine"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog"
-import { Edit, TrendingUp, AlertCircle, PiggyBank } from "lucide-react"
+import { Edit, TrendingUp, AlertCircle, PiggyBank, Plus } from "lucide-react"
 import { useState } from "react"
+import { AddIncomeDialog } from "@/components/add-income-dialog"
 
 export default function IncomePage() {
     const incomeConfig = useFinanceStore(state => state.incomeConfig)
@@ -19,29 +20,29 @@ export default function IncomePage() {
     return (
         <div className="flex flex-col gap-6 h-[calc(100vh-10rem)]">
             <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                    <h2 className="text-3xl font-bold tracking-tight">Income Overview</h2>
-                    <p className="text-muted-foreground">Manage your income sources and view yearly projections.</p>
+                <h2 className="text-3xl font-bold tracking-tight">Income</h2>
+                <div className="flex gap-2">
+                    <AddIncomeDialog />
+                    <Dialog open={open} onOpenChange={setOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline">
+                                <Edit className="mr-2 h-4 w-4" /> Configuration
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Edit Income Configuration</DialogTitle>
+                                <DialogDescription>Adjust your primary income settings below.</DialogDescription>
+                            </DialogHeader>
+                            <div className="pt-4">
+                                <IncomeInput
+                                    className="border-0 shadow-none m-0 w-full max-w-full"
+                                    onSave={() => setOpen(false)}
+                                />
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
-                <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline">
-                            <Edit className="mr-2 h-4 w-4" /> Edit Configuration
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>Edit Income</DialogTitle>
-                            <DialogDescription>Adjust your income settings below.</DialogDescription>
-                        </DialogHeader>
-                        <div className="pt-4">
-                            <IncomeInput
-                                className="border-0 shadow-none m-0 w-full max-w-full"
-                                onSave={() => setOpen(false)}
-                            />
-                        </div>
-                    </DialogContent>
-                </Dialog>
             </div>
 
             {/* Overview Cards */}

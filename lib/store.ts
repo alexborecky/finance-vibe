@@ -18,6 +18,7 @@ interface FinanceState {
     // Data (Mocked for now, will sync with Supabase)
     goals: FinancialGoal[];
     addGoal: (goal: FinancialGoal) => void;
+    editGoal: (id: string, updates: Partial<FinancialGoal>) => void;
     updateGoalProgress: (id: string, amount: number) => void;
 
     transactions: Transaction[];
@@ -56,6 +57,9 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         }
     ],
     addGoal: (goal) => set((state) => ({ goals: [...state.goals, goal] })),
+    editGoal: (id, updates) => set((state) => ({
+        goals: state.goals.map(g => g.id === id ? { ...g, ...updates } : g)
+    })),
     updateGoalProgress: (id, amount) => set((state) => ({
         goals: state.goals.map(g => g.id === id ? { ...g, currentAmount: amount } : g)
     })),

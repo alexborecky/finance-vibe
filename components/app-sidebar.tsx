@@ -1,9 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { LayoutDashboard, Wallet, PiggyBank, Settings, LogOut, Menu, Coins, CreditCard, Landmark } from "lucide-react"
+import { LayoutDashboard, Wallet, PiggyBank, Settings, LogOut, Menu, Coins, CreditCard, Landmark, Briefcase } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useFinanceStore } from "@/lib/store"
+import { calculateFinanceOverview } from "@/lib/finance-engine"
 
 import {
     Sidebar,
@@ -47,6 +49,11 @@ const navItems = [
         icon: PiggyBank,
     },
     {
+        title: "Assets",
+        url: "/assets",
+        icon: Briefcase,
+    },
+    {
         title: "Settings",
         url: "/settings",
         icon: Settings,
@@ -55,6 +62,11 @@ const navItems = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const pathname = usePathname()
+    const { incomeConfig, transactions, goals } = useFinanceStore()
+
+    // Calculate alert status for Expenses
+    const overview = calculateFinanceOverview(incomeConfig, transactions, goals)
+    const hasExpenseAlert = overview.buckets.needs.remaining < 0 || overview.buckets.wants.remaining < 0
 
     return (
         <Sidebar collapsible="icon" {...props} className="border-r border-slate-200 dark:border-slate-800">
@@ -80,9 +92,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 isActive={pathname === item.url}
                                 className="hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             >
-                                <Link href={item.url}>
+                                <Link href={item.url} className="relative w-full flex items-center gap-2">
                                     <item.icon className="h-5 w-5" />
                                     <span>{item.title}</span>
+                                    {item.title === "Expenses" && hasExpenseAlert && (
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse" />
+                                    )}
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

@@ -9,9 +9,8 @@ import { Button } from "@/components/ui/button";
 export default function DashboardPage() {
     return (
         <div className="flex flex-col gap-8">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Dashboard</h1>
-                <p className="text-muted-foreground">Overview of your financial health and "Safe to Spend" limits.</p>
+            <div className="flex items-center justify-between">
+                <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
             </div>
 
             {/* KPI Cards */}
@@ -62,17 +61,7 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="shadow-md bg-slate-900 text-slate-50 dark:bg-slate-50 dark:text-slate-900">
-                        <CardContent className="p-6 flex items-center justify-between">
-                            <div>
-                                <div className="font-bold text-lg">Add Transaction</div>
-                                <div className="text-sm opacity-80">Track expenses instantly</div>
-                            </div>
-                            <Button size="icon" variant="secondary" className="rounded-full h-10 w-10">
-                                <Plus className="h-5 w-5" />
-                            </Button>
-                        </CardContent>
-                    </Card>
+
                 </div>
             </div>
         </div>

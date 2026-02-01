@@ -6,6 +6,7 @@ import { calculateMonthlyIncome, calculateBuckets, getExpensesForMonth, Transact
 import { MonthPicker } from "@/components/month-picker"
 import { ExpensesTable, TransactionRowContent } from "@/components/expenses-table"
 import { AddExpenseDialog } from "@/components/add-expense-dialog"
+import { FixBalanceDialog } from "@/components/fix-balance-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, AlertCircle, Plus, AlertTriangle } from "lucide-react"
@@ -15,7 +16,7 @@ import { createPortal } from "react-dom"
 import { Table, TableBody, TableRow } from "@/components/ui/table"
 
 export default function ExpensesPage() {
-    const { incomeConfig, transactions, updateTransaction, deleteTransaction } = useFinanceStore()
+    const { incomeConfig, transactions, updateTransaction, deleteTransaction, addTransaction } = useFinanceStore()
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date())
 
     // Drag State
@@ -26,6 +27,7 @@ export default function ExpensesPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
     const [defaultCategory, setDefaultCategory] = useState<'need' | 'want'>('need')
+    const [isFixBalanceOpen, setIsFixBalanceOpen] = useState(false)
 
     // 1. Calculate Monthly Limits
     const monthlyIncome = calculateMonthlyIncome(incomeConfig)
@@ -104,6 +106,32 @@ export default function ExpensesPage() {
         if (confirm("Are you sure you want to delete this expense?")) {
             deleteTransaction(id)
         }
+    }
+
+    const handleFixBalance = (sourceCategory: 'want' | 'saving') => {
+        const deficit = Math.abs(remainingNeeds)
+        const date = new Date()
+
+        // 1. Create Negative Transaction for Needs to offset deficit
+        // This makes Needs spent go down (or effectively covered)
+        addTransaction({
+            id: crypto.randomUUID(),
+            amount: -deficit,
+            category: 'need',
+            date: date,
+            description: `Offset from ${sourceCategory === 'want' ? 'Wants' : 'Savings'}`,
+        })
+
+        // 2. Create Positive Transaction for Source to use up its budget
+        addTransaction({
+            id: crypto.randomUUID(),
+            amount: deficit,
+            category: sourceCategory,
+            date: date,
+            description: 'Covered Needs deficit',
+        })
+
+        setIsFixBalanceOpen(false)
     }
 
     return (
@@ -204,6 +232,7 @@ export default function ExpensesPage() {
                         onAdd={() => openAddDialog('need')}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
+                        onFixBalance={() => setIsFixBalanceOpen(true)}
                     />
                     <ExpensesTable
                         id="want"
@@ -248,6 +277,15 @@ export default function ExpensesPage() {
             >
                 <div className="hidden" />
             </AddExpenseDialog>
+
+            <FixBalanceDialog
+                isOpen={isFixBalanceOpen}
+                onClose={() => setIsFixBalanceOpen(false)}
+                deficitAmount={remainingNeeds}
+                wantsBalance={remainingWants}
+                savingsBalance={buckets.savings} // Savings doesn't have "spent" tracked simply here yet, simplified
+                onConfirm={handleFixBalance}
+            />
         </div>
     )
 }

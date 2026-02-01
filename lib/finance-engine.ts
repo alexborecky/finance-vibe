@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isSameMonth, setYear, setMonth, getDate, isBefore, startOfMonth } from 'date-fns';
+import { isSameMonth, setYear, setMonth, getDate, isBefore, startOfMonth, subMonths } from 'date-fns';
 
 /**
  * finance-engine.ts
@@ -23,7 +23,7 @@ export interface Goal {
     deadlineMonths?: number;
 }
 
-export const TransactionCategorySchema = z.enum(['need', 'want', 'saving']);
+export const TransactionCategorySchema = z.enum(['need', 'want', 'saving', 'income']);
 
 export type Transaction = {
     id: string;
@@ -117,19 +117,63 @@ export const IncomeConfigSchema = z.discriminatedUnion('mode', [
         mode: z.literal('hourly'),
         hourlyRate: z.number().min(0, "Hourly rate must be positive"),
         hoursPerWeek: z.number().min(0, "Hours cannot be negative").max(168, "Max hours exceeded"),
+        tax: z.number().min(0).optional().default(0),
+        paymentDelay: z.boolean().optional().default(false), // If true, income is based on previous month's work
+        adjustments: z.record(z.string(), z.number()).optional().default({}), // Key: "YYYY-MM", Value: freeDays
     }),
 ]);
 export type IncomeConfig = z.infer<typeof IncomeConfigSchema>;
 
-export function calculateMonthlyIncome(config: IncomeConfig): number {
+export function getManDayRate(config: IncomeConfig): number {
+    if (config.mode !== 'hourly') return 0;
+    // user specified: Keep hourly rate and hours per week. Man Day Rate based on that.
+    // Assuming 5 day work week.
+    // Daily Income = (Weekly Income) / 5
+    // Weekly Income = Hourly Rate * Hours Per Week
+    return (config.hourlyRate * config.hoursPerWeek) / 5;
+}
+
+export function getWorkingDaysInMonth(date: Date): number {
+    const start = startOfMonth(date);
+    const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    let count = 0;
+    let current = start;
+    while (current <= end) {
+        const day = current.getDay();
+        if (day !== 0 && day !== 6) { // 0 = Sun, 6 = Sat
+            count++;
+        }
+        current = new Date(current.setDate(current.getDate() + 1));
+    }
+    return count;
+}
+
+export function calculateMonthlyIncome(config: IncomeConfig, date: Date = new Date()): number {
     switch (config.mode) {
         case 'fixed':
         case 'manual':
             return config.amount;
         case 'hourly':
-            const rate = config.hourlyRate;
-            const hours = config.hoursPerWeek;
-            return rate * hours * 4.333333;
+            // If date is provided, calculate for specific month
+            // Otherwise calculate average?
+            // "Now, we calculate according to amount of working hours, but let's change that to billable days."
+            // "Projected Income = (Billable days - Free days)*Man Day Rate"
+
+            // For the global "Monthly Income" used in dashboard, we might want to use the current month's projection
+            // or an average. Let's use current month.
+
+            const manDayRate = getManDayRate(config);
+
+            // Determine effective month for work calculation
+            const effectiveDate = config.paymentDelay ? subMonths(date, 1) : date;
+
+            const workingDays = getWorkingDaysInMonth(effectiveDate);
+            const monthKey = `${effectiveDate.getFullYear()}-${String(effectiveDate.getMonth() + 1).padStart(2, '0')}`;
+            const freeDays = config.adjustments?.[monthKey] || 0;
+
+            const gross = (workingDays - freeDays) * manDayRate;
+            const net = gross - (config.tax || 0);
+            return Math.max(0, net);
     }
 }
 
@@ -149,10 +193,9 @@ export function calculateFinanceOverview(
     transactions: Transaction[],
     goals: FinancialGoal[]
 ): FinanceOverview {
-    const totalIncome = calculateMonthlyIncome(incomeConfig);
-    const allocations = calculateBuckets(totalIncome);
+    let totalIncome = calculateMonthlyIncome(incomeConfig);
 
-    // 1. Calculate Spent per Category
+    // 1. Calculate Spent per Category and Add Additional Income
     const spent = {
         needs: 0,
         wants: 0,
@@ -163,7 +206,10 @@ export function calculateFinanceOverview(
         if (t.category === 'need') spent.needs += t.amount;
         if (t.category === 'want') spent.wants += t.amount;
         if (t.category === 'saving') spent.savings += t.amount;
+        if (t.category === 'income') totalIncome += t.amount;
     });
+
+    const allocations = calculateBuckets(totalIncome);
 
     // 2. Calculate Reserved for Goals
     const reserved = {

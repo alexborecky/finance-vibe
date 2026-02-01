@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { IncomeConfig, calculateMonthlyIncome, calculateBuckets } from "@/lib/finance-engine"
 import { useFinanceStore } from "@/lib/store"
@@ -32,6 +33,12 @@ export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputPr
     const [hoursPerWeek, setHoursPerWeek] = useState<string>(
         incomeConfig.mode === 'hourly' ? String(incomeConfig.hoursPerWeek) : ""
     )
+    const [tax, setTax] = useState<string>(
+        incomeConfig.mode === 'hourly' && incomeConfig.tax ? String(incomeConfig.tax) : ""
+    )
+    const [paymentDelay, setPaymentDelay] = useState<boolean>(
+        incomeConfig.mode === 'hourly' ? !!incomeConfig.paymentDelay : false
+    )
 
     const [calculatedIncome, setCalculatedIncome] = useState<number | null>(null)
 
@@ -52,7 +59,10 @@ export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputPr
             config = {
                 mode: 'hourly',
                 hourlyRate: Number(hourlyRate) || 0,
-                hoursPerWeek: Number(hoursPerWeek) || 0
+                hoursPerWeek: Number(hoursPerWeek) || 0,
+                tax: Number(tax) || 0,
+                paymentDelay: paymentDelay,
+                adjustments: incomeConfig.mode === 'hourly' ? incomeConfig.adjustments : {}
             };
         }
 
@@ -120,6 +130,27 @@ export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputPr
                                         value={hoursPerWeek}
                                         onChange={e => setHoursPerWeek(e.target.value)}
                                     />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="tax-amount">Total Tax Amount (Monthly)</Label>
+                                    <Input
+                                        id="tax-amount"
+                                        type="number"
+                                        placeholder="5000"
+                                        value={tax}
+                                        onChange={e => setTax(e.target.value)}
+                                    />
+                                    <p className="text-xs text-muted-foreground">This amount will be subtracted from your total monthly income.</p>
+                                </div>
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Checkbox
+                                        id="payment-delay"
+                                        checked={paymentDelay}
+                                        onCheckedChange={(checked) => setPaymentDelay(checked as boolean)}
+                                    />
+                                    <Label htmlFor="payment-delay" className="font-normal cursor-pointer">
+                                        Shift income to next month (Invoice Delay)
+                                    </Label>
                                 </div>
                             </div>
                         )}
