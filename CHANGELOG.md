@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.1] - 2026-02-01
+
+### Added
+- **Advanced Goals**: Introduced "Target Date" for financial goals, unlocking smart saving strategies that automatically create recurring transactions based on the goal timeline (Short-term vs. Long-term).
+- **Dynamic Month Labels**: The income preview now dynamically displays the current month name (e.g., "Est. February Income").
+
+### Changed
+- **Income Form**: Refactored to support real-time recalculation as you type and added a permanent budget preview section.
+
 ## [0.2.0] - 2026-02-01
 
 ### Added

@@ -21,6 +21,8 @@ export interface Goal {
     currentAmount: number;
     type: 'short-term' | 'long-term';
     deadlineMonths?: number;
+    targetDate?: Date;
+    savingStrategy?: 'recurring-wants' | 'lower-savings' | 'manual';
 }
 
 export const TransactionCategorySchema = z.enum(['need', 'want', 'saving', 'income']);

@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { IncomeConfig, calculateMonthlyIncome, calculateBuckets } from "@/lib/finance-engine"
 import { useFinanceStore } from "@/lib/store"
 import { Check } from "lucide-react"
+import { format } from "date-fns"
 
 interface IncomeInputProps {
     redirectOnSave?: string;
@@ -40,12 +41,11 @@ export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputPr
         incomeConfig.mode === 'hourly' ? !!incomeConfig.paymentDelay : false
     )
 
-    const [calculatedIncome, setCalculatedIncome] = useState<number | null>(null)
+    const [calculatedIncome, setCalculatedIncome] = useState<number>(0)
 
-    // Auto-calculate on mount
     useEffect(() => {
-        handleCalculate(false) // Don't save, just calc
-    }, [])
+        handleCalculate(false)
+    }, [mode, amount, hourlyRate, hoursPerWeek, tax, paymentDelay, incomeConfig.mode === 'hourly' ? incomeConfig.adjustments : null])
 
     const handleCalculate = (save: boolean = false) => {
         let income = 0
@@ -78,7 +78,7 @@ export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputPr
         }
     }
 
-    const buckets = calculatedIncome ? calculateBuckets(calculatedIncome) : null
+    const buckets = calculateBuckets(calculatedIncome)
 
     return (
         <Card className={`w-full max-w-md mx-auto shadow-lg border-t-4 border-t-primary animate-in fade-in zoom-in duration-500 ${className}`}>
@@ -173,41 +173,36 @@ export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputPr
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
                 {/* Real-time Buckets Preview */}
-                {calculatedIncome !== null && buckets && (
-                    <div className="w-full space-y-3 pt-4 border-t mb-4">
-                        <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">Est. Monthly Income</span>
-                            <span className="font-bold text-xl">{calculatedIncome.toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 })}</span>
-                        </div>
+                <div className="w-full space-y-3 pt-4 border-t mb-4">
+                    <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Est. {format(new Date(), "MMMM")} Income</span>
+                        <span className="font-bold text-xl">{calculatedIncome.toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 })}</span>
+                    </div>
 
-                        <div className="grid grid-cols-3 gap-2 mt-2">
-                            <div className="bg-blue-50 dark:bg-blue-950/30 p-2 rounded text-center">
-                                <div className="text-xs text-muted-foreground">Needs (50%)</div>
-                                <div className="font-semibold text-blue-600 dark:text-blue-400">
-                                    {buckets.needs.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
-                                </div>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                        <div className="bg-blue-50 dark:bg-blue-950/30 p-2 rounded text-center">
+                            <div className="text-xs text-muted-foreground">Needs (50%)</div>
+                            <div className="font-semibold text-blue-600 dark:text-blue-400">
+                                {buckets.needs.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
                             </div>
-                            <div className="bg-purple-50 dark:bg-purple-950/30 p-2 rounded text-center">
-                                <div className="text-xs text-muted-foreground">Wants (30%)</div>
-                                <div className="font-semibold text-purple-600 dark:text-purple-400">
-                                    {buckets.wants.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
-                                </div>
+                        </div>
+                        <div className="bg-purple-50 dark:bg-purple-950/30 p-2 rounded text-center">
+                            <div className="text-xs text-muted-foreground">Wants (30%)</div>
+                            <div className="font-semibold text-purple-600 dark:text-purple-400">
+                                {buckets.wants.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
                             </div>
-                            <div className="bg-emerald-50 dark:bg-emerald-950/30 p-2 rounded text-center">
-                                <div className="text-xs text-muted-foreground">Savings (20%)</div>
-                                <div className="font-semibold text-emerald-600 dark:text-emerald-400">
-                                    {buckets.savings.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
-                                </div>
+                        </div>
+                        <div className="bg-emerald-50 dark:bg-emerald-950/30 p-2 rounded text-center">
+                            <div className="text-xs text-muted-foreground">Savings (20%)</div>
+                            <div className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                {buckets.savings.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
 
                 <div className="flex gap-2 w-full">
-                    <Button variant="outline" className="flex-1" onClick={() => handleCalculate(false)}>
-                        Preview
-                    </Button>
-                    <Button className="flex-1" onClick={() => handleCalculate(true)}>
+                    <Button className="w-full" onClick={() => handleCalculate(true)}>
                         <Check className="mr-2 h-4 w-4" /> Save & Continue
                     </Button>
                 </div>
