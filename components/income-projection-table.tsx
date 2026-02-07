@@ -187,7 +187,7 @@ export function IncomeProjectionTable({ className }: { className?: string }) {
     const ResizableHeader = ({ id, children, align = "right" }: { id: string, children: React.ReactNode, align?: "left" | "right" | "center" }) => (
         <TableHead
             className={cn(
-                "relative group select-none",
+                "relative group select-none sticky top-0 bg-background/95 backdrop-blur-sm z-10",
                 align === "right" && "text-right",
                 align === "center" && "text-center"
             )}
@@ -204,11 +204,12 @@ export function IncomeProjectionTable({ className }: { className?: string }) {
     )
 
     return (
-        <div className={cn("space-y-4", className)}>
-            <div className="flex justify-end">
+        <div className={cn("space-y-4 flex flex-col h-full", className)}>
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Yearly Projection</h3>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="ml-auto text-muted-foreground hover:text-foreground">
+                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                             <Settings2 className="mr-2 h-4 w-4" />
                             Columns
                         </Button>
@@ -238,8 +239,8 @@ export function IncomeProjectionTable({ className }: { className?: string }) {
                 </DropdownMenu>
             </div>
 
-            <div className="rounded-md border bg-card text-card-foreground shadow-sm overflow-x-auto">
-                <Table className="w-full" style={{ tableLayout: "fixed" }}>
+            <div className="flex-1 min-h-0 rounded-md border bg-card text-card-foreground shadow-sm">
+                <Table className="w-full" containerClassName="h-full" style={{ tableLayout: "fixed" }}>
                     <TableHeader>
                         <TableRow>
                             <ResizableHeader id="month" align="left">Month</ResizableHeader>

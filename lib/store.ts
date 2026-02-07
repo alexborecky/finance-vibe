@@ -72,7 +72,7 @@ interface FinanceState {
     addGoal: (goal: Omit<FinancialGoal, 'id'>, userId: string) => Promise<void>;
     editGoal: (id: string, updates: Partial<FinancialGoal>) => Promise<void>;
     updateGoalProgress: (id: string, amount: number) => Promise<void>;
-    removeGoal: (id: string) => Promise<void>;
+    removeGoal: (id: string, deleteTransactions?: boolean) => Promise<void>;
 
     transactions: Transaction[];
     addTransaction: (transaction: Omit<Transaction, 'id'>, userId: string) => Promise<void>;
@@ -221,14 +221,35 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         }
     },
 
-    removeGoal: async (id) => {
-        const previous = get().goals;
+    removeGoal: async (id, deleteAssociatedTransactions = false) => {
+        const goal = get().goals.find(g => g.id === id);
+        const previousGoals = get().goals;
+        const previousTransactions = get().transactions;
+
+        // Optimistic update for goals
         set((state) => ({ goals: state.goals.filter(g => g.id !== id) }));
+
+        let txToDelete: string[] = [];
+        if (deleteAssociatedTransactions && goal) {
+            const descriptionPattern = `Saving for ${goal.name}`;
+            txToDelete = get().transactions
+                .filter(t => t.description === descriptionPattern)
+                .map(t => t.id);
+
+            if (txToDelete.length > 0) {
+                set((state) => ({
+                    transactions: state.transactions.filter(t => !txToDelete.includes(t.id))
+                }));
+            }
+        }
 
         try {
             await deleteGoal(id);
+            if (txToDelete.length > 0) {
+                await Promise.all(txToDelete.map(txId => deleteTransaction(txId)));
+            }
         } catch (error) {
-            set({ goals: previous });
+            set({ goals: previousGoals, transactions: previousTransactions });
             throw error;
         }
     },
@@ -240,6 +261,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
         try {
             const created = await createTransaction({
+                id: tempId,
                 user_id: userId,
                 amount: transaction.amount,
                 category: transaction.category as 'need' | 'want' | 'saving' | 'income',
@@ -304,6 +326,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         set((state) => ({ assets: [optimisticAsset, ...state.assets] }));
 
         try {
+            console.log('[Store] Calling createAsset service...');
             const created = await createAsset({
                 user_id: userId,
                 name: asset.name,

@@ -11,10 +11,11 @@ import { AddExpenseDialog } from "@/components/add-expense-dialog"
 import { FixBalanceDialog } from "@/components/fix-balance-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, AlertCircle, Plus, AlertTriangle } from "lucide-react"
+import { TrendingUp, AlertCircle, Plus, AlertTriangle, Calendar } from "lucide-react"
 import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, useSensor, useSensors, PointerSensor, defaultDropAnimationSideEffects, DropAnimation } from "@dnd-kit/core"
 import { cn } from "@/lib/utils"
 import { createPortal } from "react-dom"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Table, TableBody, TableRow } from "@/components/ui/table"
 import { useAuth } from "@/lib/auth/auth-context"
 
@@ -30,7 +31,8 @@ export default function ExpensesPage() {
     }, [])
 
     // Check for future negative balances
-    const { hasAlert, firstFailingMonth } = checkProjectedSolvency(incomeConfig, transactions, goals, 12)
+    // Check for future negative balances
+    const { hasAlert, firstFailingMonth, failingMonths } = checkProjectedSolvency(incomeConfig, transactions, goals, 12)
 
     // Drag State
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -41,6 +43,7 @@ export default function ExpensesPage() {
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
     const [defaultCategory, setDefaultCategory] = useState<'need' | 'want'>('need')
     const [isFixBalanceOpen, setIsFixBalanceOpen] = useState(false)
+    const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null)
 
     // 1. Calculate Monthly Limits based on CURRENT month selection
     // Instead of calculateMonthlyIncome(incomeConfig), we use calculateMonthlyIncomeDetails
@@ -117,30 +120,31 @@ export default function ExpensesPage() {
     }
 
     const handleDelete = async (id: string) => {
-        const isVirtual = id.startsWith('recurring_')
-
-        if (confirm(`Are you sure you want to delete this ${isVirtual ? 'recurring ' : ''}expense${isVirtual ? ' for this month' : ''}?`)) {
-            if (isVirtual) {
-                if (!user) return
-                const originalId = id.split('_')[1]
-                // Create an exception with 0 amount? Or just a special flag? 
-                // Our getExpensesForMonth filters out recurring if an exception exists.
-                // We don't have a "deleted" flag, so we just add a transaction with amount 0 
-                // or just skip it. Let's add a transaction with 0 amount to mark it as "handled".
-                addTransaction({
-                    amount: 0,
-                    category: 'need', // temporary, will be filtered out by getExpensesForMonth anyway
-                    date: currentMonth,
-                    description: 'Deleted Recurring Instance',
-                    isRecurring: false,
-                    recurringSourceId: originalId,
-                }, user.id)
-            } else {
-                deleteTransaction(id)
-            }
-        }
+        setExpenseToDelete(id)
     }
 
+    const confirmDelete = async () => {
+        if (!expenseToDelete) return
+        const id = expenseToDelete
+        const isVirtual = id.startsWith('recurring_')
+
+        if (isVirtual) {
+            if (!user) return
+            const originalId = id.split('_')[1]
+            const transaction = monthlyTransactions.find(t => t.id === id)
+            addTransaction({
+                amount: 0,
+                category: transaction?.category || 'need',
+                date: currentMonth,
+                description: 'Deleted Recurring Instance',
+                isRecurring: false,
+                recurringSourceId: originalId,
+            }, user.id)
+        } else {
+            deleteTransaction(id)
+        }
+        setExpenseToDelete(null)
+    }
     const handleFixBalance = (sourceCategory: 'want' | 'saving') => {
         const deficit = Math.abs(remainingNeeds)
         const date = new Date()
@@ -174,27 +178,30 @@ export default function ExpensesPage() {
     }
 
     return (
-        <div className="flex flex-col gap-6 h-[calc(100vh-10rem)]">
+        <div className="flex flex-col gap-6 flex-1 min-h-0">
             <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <h2 className="text-3xl font-bold tracking-tight">Expenses</h2>
-                        {hasAlert && firstFailingMonth && (
-                            <Badge
-                                variant="destructive"
-                                className="cursor-pointer hover:bg-red-600 transition-colors animate-pulse"
-                                onClick={() => setCurrentMonth(firstFailingMonth)}
-                            >
-                                <AlertTriangle className="h-3 w-3 mr-1" />
-                                Projecting negative balance in {format(firstFailingMonth, 'MMMM')}
-                            </Badge>
-                        )}
+
                     </div>
                     <Button onClick={() => openAddDialog('need')}>
                         <Plus className="mr-2 h-4 w-4" /> Add Expense
                     </Button>
                 </div>
-                <MonthPicker currentMonth={currentMonth} onMonthChange={setCurrentMonth} />
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentMonth(new Date())}
+                        className="h-[32px] px-3 font-semibold text-sm rounded-md gap-2 bg-transparent shadow-none"
+                        disabled={format(currentMonth, 'yyyy-MM') === format(new Date(), 'yyyy-MM')}
+                    >
+                        <Calendar className="h-4 w-4" />
+                        Current month
+                    </Button>
+                    <MonthPicker currentMonth={currentMonth} onMonthChange={setCurrentMonth} failingMonths={failingMonths} />
+                </div>
             </div>
 
 
@@ -268,6 +275,15 @@ export default function ExpensesPage() {
                 wantsBalance={remainingWants}
                 savingsBalance={buckets.savings} // Savings doesn't have "spent" tracked simply here yet, simplified
                 onConfirm={handleFixBalance}
+            />
+
+            <ConfirmDialog
+                open={!!expenseToDelete}
+                onOpenChange={(open) => !open && setExpenseToDelete(null)}
+                title="Delete Expense"
+                description={`Are you sure you want to delete this ${expenseToDelete?.startsWith('recurring_') ? 'recurring ' : ''}expense${expenseToDelete?.startsWith('recurring_') ? ' for this month' : ''}?`}
+                variant="destructive"
+                onConfirm={confirmDelete}
             />
         </div>
     )

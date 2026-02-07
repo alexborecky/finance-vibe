@@ -131,7 +131,7 @@ export default function SavingsPage() {
     }
 
     return (
-        <div className="flex flex-col gap-6 h-[calc(100vh-10rem)]">
+        <div className="flex flex-col gap-6 flex-1 min-h-0">
             <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight">Savings</h2>
             </div>

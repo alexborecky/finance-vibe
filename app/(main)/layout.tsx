@@ -11,8 +11,8 @@ export default function MainLayout({
         <DataLoader>
             <SidebarProvider>
                 <AppSidebar />
-                <div className="flex flex-col w-full min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors">
-                    <main className="flex-1 p-6 md:p-8 pt-6 max-w-7xl mx-auto w-full animate-in fade-in duration-500">
+                <div className="flex flex-col w-full h-svh bg-slate-50 dark:bg-slate-950 transition-colors overflow-hidden">
+                    <main className="flex-1 flex flex-col p-6 md:p-8 pt-6 max-w-7xl mx-auto w-full animate-in fade-in duration-500 min-h-0">
                         {children}
                     </main>
                 </div>

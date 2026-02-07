@@ -95,8 +95,27 @@ export function AddExpenseDialog({
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
-    const setIsOpen = setControlledOpen || setInternalOpen;
+    const isControlled = controlledOpen !== undefined
+    const isOpen = isControlled ? controlledOpen : internalOpen
+
+    // Robust close handler
+    const handleOpenChange = (open: boolean) => {
+        console.log('[AddExpenseDialog] Open state changing to:', open, 'Controlled:', isControlled);
+        if (setControlledOpen) {
+            setControlledOpen(open);
+        } else {
+            setInternalOpen(open);
+        }
+
+        if (!open) {
+            // Reset state on close
+            setError(null);
+            setIsSubmitting(false);
+            if (!existingTransaction) {
+                form.reset();
+            }
+        }
+    };
 
     const { user } = useAuth()
     const { addTransaction, updateTransaction } = useFinanceStore()
@@ -115,6 +134,7 @@ export function AddExpenseDialog({
     // Reset form when opening/changing transaction
     useEffect(() => {
         if (isOpen) {
+            console.log('[AddExpenseDialog] Dialog opened. Existing transaction:', existingTransaction ? existingTransaction.id : 'None');
             setError(null)
             if (existingTransaction) {
                 form.reset({
@@ -140,7 +160,15 @@ export function AddExpenseDialog({
     const category = form.watch("category")
 
     async function onSubmit(values: z.infer<typeof formSchema>, isContinue: boolean = false) {
+        console.log('[AddExpenseDialog] onSubmit called. isSubmitting:', isSubmitting, 'Values:', values);
+
+        if (isSubmitting) {
+            console.warn('[AddExpenseDialog] Submission already in progress, ignoring.');
+            return;
+        }
+
         if (!user) {
+            console.error('[AddExpenseDialog] No user found in onSubmit.');
             setError("You must be logged in to add expenses.")
             return
         }
@@ -153,6 +181,7 @@ export function AddExpenseDialog({
         const isRecurringEdit = isVirtual || existingTransaction?.isRecurring
 
         if (existingTransaction && isRecurringEdit) {
+            console.log('[AddExpenseDialog] Editing recurring transaction, asking for confirmation.');
             // Ask for propagation using Custom Dialog
             setPendingSubmission(values)
             setIsRecurringConfirmOpen(true)
@@ -167,7 +196,9 @@ export function AddExpenseDialog({
         propagationMode: 'single' | 'future' | 'none' = 'none',
         isContinue: boolean = false
     ) {
+        console.log('[AddExpenseDialog] Processing transaction. Mode:', propagationMode, 'Continue:', isContinue);
         if (!user) {
+            console.error('[AddExpenseDialog] No user found during processing.');
             setError("User session not found.")
             return;
         }
@@ -176,6 +207,7 @@ export function AddExpenseDialog({
         setError(null)
 
         try {
+            console.log('[AddExpenseDialog] processTransaction started. Propagation:', propagationMode);
             const isVirtual = existingTransaction?.id.startsWith('recurring_')
             const originalId = isVirtual
                 ? existingTransaction!.id.split('_')[1]
@@ -183,9 +215,11 @@ export function AddExpenseDialog({
 
             let result;
 
+            console.log('[AddExpenseDialog] Checking operation type...');
+
             if (propagationMode === 'future') {
-                // ... existing logic ...
                 if (isVirtual) {
+                    console.log('[AddExpenseDialog] Updating future recurring (virtual)...');
                     await updateTransaction(originalId!, { recurringEndDate: subMonths(values.date, 1) })
                     result = await addTransaction({
                         amount: Number(values.amount),
@@ -196,6 +230,7 @@ export function AddExpenseDialog({
                         recurringEndDate: values.recurringEndDate,
                     }, user.id)
                 } else {
+                    console.log('[AddExpenseDialog] Updating future recurring (real)...');
                     await updateTransaction(existingTransaction!.id, {
                         amount: Number(values.amount),
                         description: values.description,
@@ -206,6 +241,7 @@ export function AddExpenseDialog({
                     })
                 }
             } else if (propagationMode === 'single') {
+                console.log('[AddExpenseDialog] Creating single exception from recurring...');
                 await addTransaction({
                     amount: Number(values.amount),
                     description: values.description,
@@ -216,6 +252,7 @@ export function AddExpenseDialog({
                 }, user.id)
             } else {
                 if (existingTransaction) {
+                    console.log('[AddExpenseDialog] Updating existing transaction...');
                     await updateTransaction(existingTransaction.id, {
                         amount: Number(values.amount),
                         description: values.description,
@@ -225,7 +262,7 @@ export function AddExpenseDialog({
                         recurringEndDate: values.recurringEndDate,
                     })
                 } else {
-                    console.log("Adding new transaction...");
+                    console.log("[AddExpenseDialog] Adding new transaction...");
                     result = await addTransaction({
                         amount: Number(values.amount),
                         description: values.description,
@@ -234,13 +271,14 @@ export function AddExpenseDialog({
                         isRecurring: values.isRecurring ?? false,
                         recurringEndDate: values.recurringEndDate,
                     }, user.id)
-                    console.log("Transaction added successfully", result);
+                    console.log("[AddExpenseDialog] Transaction added successfully", result);
                 }
             }
 
+            console.log('[AddExpenseDialog] Operation complete. Closing/Resetting...');
             if (!isContinue) {
-                setIsOpen(false)
-                form.reset()
+                handleOpenChange(false) // Use the new handler
+                setInternalOpen(false); // Force local state too just in case
             } else {
                 // Simplified reset strategy: Reset to defaults, then restore sticky fields
                 form.reset({
@@ -251,19 +289,21 @@ export function AddExpenseDialog({
                     isRecurring: values.isRecurring ?? false, // Keep recurring check
                     recurringEndDate: values.recurringEndDate // Keep end date if set
                 });
+                console.log('[AddExpenseDialog] Form reset for next entry.');
             }
             setIsRecurringConfirmOpen(false)
             setPendingSubmission(null)
         } catch (error: any) {
-            console.error("Failed to process transaction (CAUGHT):", error);
+            console.error("[AddExpenseDialog] Failed to process transaction (CAUGHT):", error);
             setError(error.message || "Failed to save transaction. Please try again.")
         } finally {
+            console.log("[AddExpenseDialog] Finally block reached. Resetting submitting state.");
             setIsSubmitting(false)
         }
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 {children || <Button><Plus className="mr-2 h-4 w-4" /> Add Expense</Button>}
             </DialogTrigger>
@@ -370,8 +410,8 @@ export function AddExpenseDialog({
                             )}
                         />
 
-                        {/* Recurring Checkbox - Only for Needs (or if editing a recurring item) */}
-                        {(category === 'need' || form.getValues('isRecurring')) && (
+                        {/* Recurring Checkbox - Only for Needs/Wants (or if editing a recurring item) */}
+                        {(category === 'need' || category === 'want' || form.getValues('isRecurring')) && (
                             <div className="space-y-4">
                                 <FormField
                                     control={form.control}

@@ -3,6 +3,14 @@
 ## [0.2.3] - 2026-02-07
 
 ### Added
+- **Assets UI Refactor**: Completely redesigned the Assets module to match the "Goals" style, grouping all assets within a single container card.
+- **Click-to-Edit**: Made both Asset and Goal items fully clickable triggers for their respective edit dialogs, removing redundant dropdown menus.
+- **Enhanced Asset Deletion**: Moved the delete functionality into the Asset edit dialog with a confirmation modal for a safer and cleaner experience.
+
+### Changed
+- **Unified Module Style**: Standardized both Assets and Goals to use a high-density, card-based layout without internal headers.
+- **Compact Layout**: Minimized padding across Assets and Goals (zero top padding, reduced row height) to maximize information density.
+- **Container Insets**: Added consistent 16px (`px-4`) left and right padding to the main module cards.
 - **Expenses Alert**: Added a badge in the expenses header that warns if any future month (next 12 months) is projected to have a negative balance.
 
 ## [0.2.2] - 2026-02-05

@@ -44,16 +44,16 @@ export function SavingsTable({
                 <h3 className="font-semibold text-lg">Monthly Savings</h3>
             </div>
 
-            <div className="flex-1 overflow-auto bg-background/30">
-                <Table>
-                    <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                            <TableHead>Month</TableHead>
-                            <TableHead className="text-right">Target (20%)</TableHead>
-                            <TableHead className="text-right text-blue-600">Needs Expenses Leftover</TableHead>
-                            <TableHead className="text-right text-purple-600">Wants Expenses Leftover</TableHead>
-                            <TableHead className="text-right font-bold text-foreground">Final Amount Saved</TableHead>
-                            <TableHead className="text-right">Percentage</TableHead>
+            <div className="flex-1 min-h-0 bg-background/30">
+                <Table containerClassName="h-full">
+                    <TableHeader className="sticky top-0 bg-background/95 backdrop-blur-sm z-10">
+                        <TableRow className="hover:bg-transparent border-b-0">
+                            <TableHead className="border-b">Month</TableHead>
+                            <TableHead className="text-right border-b">Target (20%)</TableHead>
+                            <TableHead className="text-right text-blue-600 border-b">Needs Expenses Leftover</TableHead>
+                            <TableHead className="text-right text-purple-600 border-b">Wants Expenses Leftover</TableHead>
+                            <TableHead className="text-right font-bold text-foreground border-b">Final Amount Saved</TableHead>
+                            <TableHead className="text-right border-b">Percentage</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>

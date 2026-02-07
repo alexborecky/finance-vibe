@@ -3,11 +3,12 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { Plus, Pencil } from "lucide-react"
+import { Plus, Pencil, Trash2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useFinanceStore } from "@/lib/store"
 import { Asset } from "@/lib/finance-engine"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -59,11 +60,28 @@ interface AddAssetDialogProps {
 export function AddAssetDialog({ children, assetToEdit, open: controlledOpen, onOpenChange }: AddAssetDialogProps) {
     const [internalOpen, setInternalOpen] = useState(false)
     const { user } = useAuth()
-    const { addAsset, updateAsset } = useFinanceStore()
+    const { addAsset, updateAsset, removeAsset } = useFinanceStore()
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
     const isControlled = controlledOpen !== undefined
     const isOpen = isControlled ? controlledOpen : internalOpen
-    const setIsOpen = isControlled ? onOpenChange : setInternalOpen
+
+    const handleOpenChange = (open: boolean) => {
+        console.log('[AddAssetDialog] Open state changing to:', open);
+        if (onOpenChange) {
+            onOpenChange(open);
+        } else {
+            setInternalOpen(open);
+        }
+
+        if (!open) {
+            setError(null);
+            setIsSubmitting(false);
+            if (!assetToEdit) {
+                form.reset();
+            }
+        }
+    };
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -98,7 +116,7 @@ export function AddAssetDialog({ children, assetToEdit, open: controlledOpen, on
     }, [assetToEdit, form, isOpen])
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log('[Dialog] Submitting asset form:', values);
+        console.log('[AddAssetDialog] Submitting asset form:', values);
         if (!user) {
             setError("You must be logged in to add assets.")
             return
@@ -116,21 +134,30 @@ export function AddAssetDialog({ children, assetToEdit, open: controlledOpen, on
             }
 
             if (assetToEdit) {
-                console.log('[Dialog] Updating existing asset...');
+                console.log('[AddAssetDialog] Updating existing asset...');
                 await updateAsset(assetToEdit.id, assetData)
             } else {
-                console.log('[Dialog] Adding new asset...');
+                console.log('[AddAssetDialog] Adding new asset...');
                 await addAsset(assetData, user.id)
             }
 
-            console.log('[Dialog] Operation successful, closing modal...');
-            if (setIsOpen) setIsOpen(false)
+            console.log('[AddAssetDialog] Operation successful, closing modal...');
+            handleOpenChange(false);
+            setInternalOpen(false); // Force local state
             form.reset()
         } catch (error: any) {
-            console.error("[Dialog] Catch block caught error:", error);
+            console.error("[AddAssetDialog] Catch block caught error:", error);
             setError(error.message || "Failed to save asset")
         } finally {
             setIsSubmitting(false)
+        }
+    }
+
+    const handleDelete = async () => {
+        if (assetToEdit) {
+            await removeAsset(assetToEdit.id)
+            setIsDeleteDialogOpen(false)
+            handleOpenChange(false)
         }
     }
 
@@ -138,7 +165,7 @@ export function AddAssetDialog({ children, assetToEdit, open: controlledOpen, on
     const showInterestRate = category === 'investment' || category === 'savings'
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 {children || <Button><Plus className="mr-2 h-4 w-4" /> Add Asset</Button>}
             </DialogTrigger>
@@ -230,7 +257,17 @@ export function AddAssetDialog({ children, assetToEdit, open: controlledOpen, on
                             </div>
                         )}
 
-                        <DialogFooter>
+                        <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
+                            {assetToEdit ? (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => setIsDeleteDialogOpen(true)}
+                                >
+                                    Delete Asset
+                                </Button>
+                            ) : <div></div>}
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting ? "Saving..." : (assetToEdit ? "Save Changes" : "Add Asset")}
                             </Button>
@@ -238,6 +275,15 @@ export function AddAssetDialog({ children, assetToEdit, open: controlledOpen, on
                     </form>
                 </Form>
             </DialogContent>
+
+            <ConfirmDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title="Delete Asset"
+                description="Are you sure you want to delete this asset? This action cannot be undone."
+                variant="destructive"
+                onConfirm={handleDelete}
+            />
         </Dialog>
     )
 }

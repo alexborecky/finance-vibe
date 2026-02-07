@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { format } from "date-fns"
 
 // Menu items
 const navItems = [
@@ -66,11 +68,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const pathname = usePathname()
     const router = useRouter()
     const { incomeConfig, transactions, goals } = useFinanceStore()
+    const [mounted, setMounted] = React.useState(false)
     const { user, profile, signOut } = useAuth()
+
+    React.useEffect(() => {
+        setMounted(true)
+    }, [])
 
     // Calculate alert status for Expenses
     // Check next 12 months for negative balance
-    const { hasAlert } = checkProjectedSolvency(incomeConfig, transactions, goals, 12)
+    // Calculate alert status for Expenses
+    // Check next 12 months for negative balance
+    const { hasAlert, failingMonths } = checkProjectedSolvency(incomeConfig, transactions, goals, 12)
 
     // Check if user is admin/superadmin
     const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin'
@@ -122,14 +131,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 <Link href={item.url} className="relative w-full flex items-center gap-2">
                                     <item.icon className="h-5 w-5" />
                                     <span>{item.title}</span>
-                                    {item.title === "Expenses" && hasAlert && (
-                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse" />
+                                    {mounted && item.title === "Expenses" && hasAlert && (
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div className="absolute right-2 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse" />
+                                            </TooltipTrigger>
+                                            <TooltipContent side="right">
+                                                <p>Negative balance in {failingMonths.map(d => format(d, 'MMMM')).join(', ')}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
                                     )}
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     ))}
-                    {isAdmin && (
+                    {mounted && isAdmin && (
                         <>
                             <SidebarSeparator className="my-2" />
                             <SidebarMenuItem>

@@ -119,9 +119,9 @@ export const estimateGoalTimeline = (
 /**
  * Calculates the "Safe to Spend" daily amount from the remaining Wants bucket.
  */
-export const calculateDailyAllowance = (remainingWants: number): number => {
-    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-    const today = new Date().getDate();
+export const calculateDailyAllowance = (remainingWants: number, referenceDate: Date = new Date()): number => {
+    const daysInMonth = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0).getDate();
+    const today = referenceDate.getDate();
     const remainingDays = daysInMonth - today + 1;
 
     return remainingWants / remainingDays;
@@ -406,11 +406,14 @@ export function checkProjectedSolvency(
     incomeConfig: IncomeConfig,
     transactions: Transaction[],
     goals: FinancialGoal[],
-    monthsToCheck: number = 12
-): { hasAlert: boolean; firstFailingMonth: Date | null } {
-    const today = new Date();
+    monthsToCheck: number = 12,
+    referenceDate: Date = new Date()
+): { hasAlert: boolean; firstFailingMonth: Date | null; failingMonths: Date[] } {
+    const today = referenceDate;
+    const failingMonths: Date[] = [];
 
     for (let i = 0; i < monthsToCheck; i++) {
+        // Create date for the 1st of the month being checked
         const checkDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
 
         // 1. Get Income for this month
@@ -442,9 +445,13 @@ export function checkProjectedSolvency(
 
         // Check for negative balance in Needs or Wants
         if (remaining.needs < 0 || remaining.wants < 0) {
-            return { hasAlert: true, firstFailingMonth: checkDate };
+            failingMonths.push(checkDate);
         }
     }
 
-    return { hasAlert: false, firstFailingMonth: null };
+    return {
+        hasAlert: failingMonths.length > 0,
+        firstFailingMonth: failingMonths.length > 0 ? failingMonths[0] : null,
+        failingMonths
+    };
 }

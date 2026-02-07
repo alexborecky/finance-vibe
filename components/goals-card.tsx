@@ -1,9 +1,9 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { useFinanceStore } from "@/lib/store"
-import { PiggyBank, Laptop, Home, Edit2 } from "lucide-react"
+import { Laptop, Home, Edit2 } from "lucide-react"
 import { AddGoalDialog } from "./add-goal-dialog"
 import { Button } from "./ui/button"
 
@@ -15,25 +15,16 @@ export function GoalsCard() {
     const longTermGoals = goals.filter(g => g.type === 'long-term')
 
     return (
-        <Card className="h-full shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <div className="space-y-1">
-                    <CardTitle className="flex items-center gap-2">
-                        <PiggyBank className="h-5 w-5 text-indigo-500" />
-                        Financial Goals
-                    </CardTitle>
-                    <CardDescription>Track your progress towards targets.</CardDescription>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-4">
+        <Card className="h-full shadow-md px-4">
+            <CardContent className="space-y-0 p-0">
 
                 {/* Short Term Section */}
                 {shortTermGoals.length > 0 && (
-                    <div className="space-y-4">
-                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Short Term (From 30% Wants)</h4>
+                    <div className="space-y-0">
+                        <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest p-2 pb-1 opacity-70">Short Term (From 30% Wants)</h4>
                         {shortTermGoals.map(goal => (
                             <AddGoalDialog key={goal.id} existingGoal={goal}>
-                                <div className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50 p-2 rounded-md transition-colors">
+                                <div className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50 py-3 px-2 transition-colors border-b border-slate-100 dark:border-slate-800">
                                     <GoalItem goal={goal} icon={Laptop} />
                                 </div>
                             </AddGoalDialog>
@@ -43,11 +34,11 @@ export function GoalsCard() {
 
                 {/* Long Term Section */}
                 {longTermGoals.length > 0 && (
-                    <div className="space-y-4 pt-2 border-t">
-                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mt-4">Long Term (From 20% Savings)</h4>
+                    <div className="space-y-0">
+                        <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest p-2 pt-4 pb-1 opacity-70">Long Term (From 20% Savings)</h4>
                         {longTermGoals.map(goal => (
                             <AddGoalDialog key={goal.id} existingGoal={goal}>
-                                <div className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50 p-2 rounded-md transition-colors">
+                                <div className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50 py-3 px-2 transition-colors border-b last:border-0 border-slate-100 dark:border-slate-800">
                                     <GoalItem goal={goal} icon={Home} />
                                 </div>
                             </AddGoalDialog>

@@ -21,6 +21,7 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { UserPlus, Copy, Check, Mail } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface InviteUserDialogProps {
     onInviteCreated: () => void
@@ -33,6 +34,7 @@ export function InviteUserDialog({ onInviteCreated }: InviteUserDialogProps) {
     const [loading, setLoading] = useState(false)
     const [result, setResult] = useState<{ message?: string; inviteUrl?: string; success?: boolean } | null>(null)
     const [copied, setCopied] = useState(false)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
     const handleCreateInvite = async () => {
         if (!email) return
@@ -49,11 +51,11 @@ export function InviteUserDialog({ onInviteCreated }: InviteUserDialogProps) {
                 })
                 onInviteCreated()
             } else {
-                alert(response.error || 'Failed to send invitation')
+                setErrorMessage(response.error || 'Failed to send invitation')
             }
         } catch (error) {
             console.error('Error creating invitation:', error)
-            alert('Failed to create invitation. Please try again.')
+            setErrorMessage('Failed to create invitation. Please try again.')
         } finally {
             setLoading(false)
         }
@@ -175,6 +177,16 @@ export function InviteUserDialog({ onInviteCreated }: InviteUserDialogProps) {
                     </div>
                 )}
             </DialogContent>
+
+            <ConfirmDialog
+                open={!!errorMessage}
+                onOpenChange={(open) => !open && setErrorMessage(null)}
+                title="Error"
+                description={errorMessage || ""}
+                confirmText="OK"
+                showCancel={false}
+                onConfirm={() => setErrorMessage(null)}
+            />
         </Dialog>
     )
 }

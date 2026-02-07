@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -66,8 +67,11 @@ interface AddGoalDialogProps {
 export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
     const [open, setOpen] = useState(false)
     const [targetDateEnabled, setTargetDateEnabled] = useState(false)
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+    const [isDeletePaymentsOpen, setIsDeletePaymentsOpen] = useState(false)
+    const [mounted, setMounted] = useState(false)
     const { user } = useAuth()
-    const { addGoal, editGoal, removeGoal, addTransaction } = useFinanceStore()
+    const { addGoal, editGoal, removeGoal, addTransaction, transactions } = useFinanceStore()
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -79,6 +83,10 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
             createTransaction: false,
         },
     })
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     useEffect(() => {
         if (open) {
@@ -153,6 +161,10 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
 
         setOpen(false)
         form.reset()
+    }
+
+    if (!mounted) {
+        return children ? <>{children}</> : null
     }
 
     return (
@@ -399,7 +411,7 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                                                                         </div>
                                                                         <div className="flex-1">
                                                                             <div className="flex items-center justify-between mb-1">
-                                                                                <span className="font-semibold text-sm">I'll manage myself</span>
+                                                                                <span className="font-semibold text-sm">I&apos;ll manage myself</span>
                                                                             </div>
                                                                             <div className="text-xs text-muted-foreground leading-relaxed">
                                                                                 No automatic transactions. You handle the transfers.
@@ -426,9 +438,15 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                                     variant="ghost"
                                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                     onClick={() => {
-                                        if (confirm("Are you sure you want to delete this goal?")) {
-                                            removeGoal(existingGoal.id);
-                                            setOpen(false);
+                                        const hasPayments = transactions.some(t =>
+                                            t.isRecurring &&
+                                            t.description === `Saving for ${existingGoal.name}`
+                                        );
+
+                                        if (hasPayments) {
+                                            setIsDeletePaymentsOpen(true);
+                                        } else {
+                                            setIsDeleteDialogOpen(true);
                                         }
                                     }}
                                 >
@@ -440,6 +458,39 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                     </form>
                 </Form>
             </DialogContent>
+
+            {existingGoal && (
+                <>
+                    <ConfirmDialog
+                        open={isDeleteDialogOpen}
+                        onOpenChange={setIsDeleteDialogOpen}
+                        title="Delete Goal"
+                        description="Are you sure you want to delete this goal? This action cannot be undone."
+                        variant="destructive"
+                        onConfirm={() => {
+                            removeGoal(existingGoal.id);
+                            setOpen(false);
+                        }}
+                    />
+                    <ConfirmDialog
+                        open={isDeletePaymentsOpen}
+                        onOpenChange={setIsDeletePaymentsOpen}
+                        title="Delete Goal & Payments"
+                        description={`Do you also want to delete the recurring payments planned for "${existingGoal.name}"?`}
+                        confirmText="Delete Everything"
+                        cancelText="Delete Only Goal"
+                        variant="destructive"
+                        onConfirm={() => {
+                            removeGoal(existingGoal.id, true);
+                            setOpen(false);
+                        }}
+                        onCancel={() => {
+                            removeGoal(existingGoal.id, false);
+                            setOpen(false);
+                        }}
+                    />
+                </>
+            )}
         </Dialog>
     )
 }

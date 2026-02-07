@@ -141,15 +141,15 @@ export function ExpensesTable({ id, title, transactions, limit, spent, onAdd, on
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto bg-background/30">
-                <Table>
-                    <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                            <TableHead className="w-[30px]"></TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                            <TableHead className="w-[70px]"></TableHead>
+            <div className="flex-1 min-h-0 bg-background/30">
+                <Table containerClassName="h-full">
+                    <TableHeader className="sticky top-0 bg-background/95 backdrop-blur-sm z-10">
+                        <TableRow className="hover:bg-transparent border-b-0">
+                            <TableHead className="w-[30px] border-b"></TableHead>
+                            <TableHead className="border-b">Description</TableHead>
+                            <TableHead className="border-b">Date</TableHead>
+                            <TableHead className="text-right border-b">Amount</TableHead>
+                            <TableHead className="w-[70px] border-b"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>

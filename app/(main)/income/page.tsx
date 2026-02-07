@@ -18,7 +18,7 @@ export default function IncomePage() {
     const [open, setOpen] = useState(false)
 
     return (
-        <div className="flex flex-col gap-6 h-[calc(100vh-10rem)]">
+        <div className="flex flex-col gap-6 flex-1 min-h-0">
             <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight">Income</h2>
                 <div className="flex gap-2">
@@ -91,11 +91,8 @@ export default function IncomePage() {
             </div>
 
             {/* Table */}
-            <div className="flex-1 min-h-0 flex flex-col space-y-2">
-                <h3 className="text-lg font-semibold">Yearly Projection</h3>
-                <div className="flex-1 overflow-auto rounded-md">
-                    <IncomeProjectionTable className="border-0 shadow-none" />
-                </div>
+            <div className="flex-1 min-h-0">
+                <IncomeProjectionTable className="border-0 shadow-none" />
             </div>
         </div>
     )
