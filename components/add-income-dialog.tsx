@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils"
 import { useFinanceStore } from "@/lib/store"
 import { useState, useEffect } from "react"
 import { Transaction } from "@/lib/finance-engine"
+import { useAuth } from "@/lib/auth/auth-context"
 
 const formSchema = z.object({
     description: z.string().min(2, {
@@ -59,6 +60,7 @@ export function AddIncomeDialog({
 
     const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
     const setIsOpen = setControlledOpen || setInternalOpen;
+    const { user } = useAuth()
 
     const { addTransaction, updateTransaction } = useFinanceStore()
 
@@ -97,14 +99,13 @@ export function AddIncomeDialog({
                 category: 'income',
                 date: values.date,
             })
-        } else {
+        } else if (user) {
             addTransaction({
-                id: crypto.randomUUID(),
                 amount: Number(values.amount),
                 description: values.description,
                 category: 'income',
                 date: values.date,
-            })
+            }, user.id)
         }
         setIsOpen(false)
         form.reset()
@@ -113,7 +114,7 @@ export function AddIncomeDialog({
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                {children || <Button><Plus className="mr-2 h-4 w-4" /> Add Income</Button>}
+                {children || <Button><Plus className="mr-2 h-4 w-4" /> Add Extra Income</Button>}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>

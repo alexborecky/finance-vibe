@@ -9,8 +9,10 @@ import { SimpleSavingsDialog } from "@/components/simple-savings-dialog"
 import { Progress } from "@/components/ui/progress"
 import { Landmark, TrendingUp } from "lucide-react"
 import { eachMonthOfInterval, startOfYear, endOfYear, isSameMonth } from "date-fns"
+import { useAuth } from "@/lib/auth/auth-context"
 
 export default function SavingsPage() {
+    const { user } = useAuth()
     const { incomeConfig, transactions, addTransaction, updateTransaction } = useFinanceStore()
 
     // Dialog State
@@ -85,15 +87,14 @@ export default function SavingsPage() {
         if (currentMonthTransactions.length > 0) {
             // Update the first one (consolidate? For now, update first)
             updateTransaction(currentMonthTransactions[0].id, { amount })
-        } else {
+        } else if (user) {
             // Create new
             addTransaction({
-                id: crypto.randomUUID(),
                 date: now,
                 amount,
                 category: 'saving',
                 description: 'Monthly Savings'
-            })
+            }, user.id)
         }
     }
 

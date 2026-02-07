@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils"
 import { useFinanceStore } from "@/lib/store"
 import { useState } from "react"
 import { TransactionCategorySchema } from "@/lib/finance-engine"
+import { useAuth } from "@/lib/auth/auth-context"
 
 const formSchema = z.object({
     amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
@@ -56,6 +57,7 @@ const formSchema = z.object({
 
 export function AddTransactionDialog({ children }: { children?: React.ReactNode }) {
     const [open, setOpen] = useState(false)
+    const { user } = useAuth()
     const addTransaction = useFinanceStore((state) => state.addTransaction)
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -69,13 +71,14 @@ export function AddTransactionDialog({ children }: { children?: React.ReactNode 
     })
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-        addTransaction({
-            id: crypto.randomUUID(),
-            amount: Number(values.amount),
-            description: values.description,
-            category: values.category as any,
-            date: values.date,
-        })
+        if (user) {
+            addTransaction({
+                amount: Number(values.amount),
+                description: values.description,
+                category: values.category as any,
+                date: values.date,
+            }, user.id)
+        }
         setOpen(false)
         form.reset()
     }

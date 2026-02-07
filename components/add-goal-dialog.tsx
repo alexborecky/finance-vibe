@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/tabs"
 import { useFinanceStore } from "@/lib/store"
 import { FinancialGoal } from "@/lib/finance-engine"
+import { useAuth } from "@/lib/auth/auth-context"
 
 const formSchema = z.object({
     name: z.string().min(2, {
@@ -54,7 +55,7 @@ const formSchema = z.object({
     type: z.enum(['short-term', 'long-term']),
     targetDate: z.date().optional(),
     savingStrategy: z.enum(['recurring-wants', 'lower-savings', 'manual']).optional(),
-    createTransaction: z.boolean().default(false),
+    createTransaction: z.boolean(),
 })
 
 interface AddGoalDialogProps {
@@ -65,7 +66,8 @@ interface AddGoalDialogProps {
 export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
     const [open, setOpen] = useState(false)
     const [targetDateEnabled, setTargetDateEnabled] = useState(false)
-    const { addGoal, editGoal, addTransaction } = useFinanceStore()
+    const { user } = useAuth()
+    const { addGoal, editGoal, removeGoal, addTransaction } = useFinanceStore()
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -74,6 +76,7 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
             targetAmount: "",
             currentAmount: "0",
             type: "short-term",
+            createTransaction: false,
         },
     })
 
@@ -115,17 +118,15 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                 targetDate: targetDateEnabled ? values.targetDate : undefined,
                 savingStrategy: targetDateEnabled ? values.savingStrategy : undefined,
             })
-        } else {
-            const goalId = crypto.randomUUID()
+        } else if (user) {
             addGoal({
-                id: goalId,
                 name: values.name,
                 targetAmount: Number(values.targetAmount),
                 currentAmount: Number(values.currentAmount),
                 type: values.type as 'short-term' | 'long-term',
                 targetDate: targetDateEnabled ? values.targetDate : undefined,
                 savingStrategy: targetDateEnabled ? values.savingStrategy : undefined,
-            })
+            }, user.id)
         }
 
         // Handle Automated Transactions
@@ -138,14 +139,15 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
             if (monthlyAmount > 0) {
                 const category = values.savingStrategy === 'recurring-wants' ? 'want' : 'saving'
 
-                addTransaction({
-                    id: crypto.randomUUID(),
-                    amount: monthlyAmount,
-                    category: category,
-                    date: new Date(),
-                    description: `Saving for ${values.name}`,
-                    isRecurring: true
-                })
+                if (user) {
+                    addTransaction({
+                        amount: monthlyAmount,
+                        category: category,
+                        date: new Date(),
+                        description: `Saving for ${values.name}`,
+                        isRecurring: true
+                    }, user.id)
+                }
             }
         }
 
@@ -162,7 +164,7 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{existingGoal ? "Edit Goal" : "Add New Goal"}</DialogTitle>
                     <DialogDescription>
@@ -341,17 +343,21 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                                                                     <RadioGroupItem value="recurring-wants" id="s1" className="peer sr-only" />
                                                                 </FormControl>
                                                                 <FormLabel htmlFor="s1" className="flex flex-col w-full cursor-pointer rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary relative overflow-hidden">
-                                                                    <div className="flex w-full items-center justify-between mb-2">
-                                                                        <div className="flex items-center gap-2 font-semibold">
+                                                                    <div className="flex gap-3 text-left">
+                                                                        <div className="mt-1">
                                                                             <Wallet className="h-4 w-4 text-purple-600" />
-                                                                            Add recurring Wants expense
                                                                         </div>
-                                                                        {isShortTerm && (
-                                                                            <Badge variant="secondary" className="bg-green-100 text-green-700">Recommended</Badge>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="text-xs text-muted-foreground w-3/4">
-                                                                        Automatically add <strong>{monthlyAmount.toLocaleString('cs-CZ')} Kč/mo</strong> to your wants budget. Ideal for short-term goals.
+                                                                        <div className="flex-1">
+                                                                            <div className="flex items-center justify-between mb-1">
+                                                                                <span className="font-semibold text-sm">Add recurring Wants expense</span>
+                                                                                {isShortTerm && (
+                                                                                    <Badge variant="secondary" className="bg-green-100 text-green-700">Recommended</Badge>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="text-xs text-muted-foreground leading-relaxed">
+                                                                                Automatically add <strong>{monthlyAmount.toLocaleString('cs-CZ')} Kč/mo</strong> to your wants budget. Ideal for short-term goals.
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                 </FormLabel>
                                                             </FormItem>
@@ -362,17 +368,21 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                                                                     <RadioGroupItem value="lower-savings" id="s2" className="peer sr-only" />
                                                                 </FormControl>
                                                                 <FormLabel htmlFor="s2" className="flex flex-col w-full cursor-pointer rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary relative overflow-hidden">
-                                                                    <div className="flex w-full items-center justify-between mb-2">
-                                                                        <div className="flex items-center gap-2 font-semibold">
+                                                                    <div className="flex gap-3 text-left">
+                                                                        <div className="mt-1">
                                                                             <PiggyBank className="h-4 w-4 text-emerald-600" />
-                                                                            Use Savings Fund
                                                                         </div>
-                                                                        {!isShortTerm && (
-                                                                            <Badge variant="secondary" className="bg-green-100 text-green-700">Recommended</Badge>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="text-xs text-muted-foreground w-3/4">
-                                                                        Reserve <strong>{monthlyAmount.toLocaleString('cs-CZ')} Kč/mo</strong> from your 20% savings bucket. Best for long-term safety.
+                                                                        <div className="flex-1">
+                                                                            <div className="flex items-center justify-between mb-1">
+                                                                                <span className="font-semibold text-sm">Use Savings Fund</span>
+                                                                                {!isShortTerm && (
+                                                                                    <Badge variant="secondary" className="bg-green-100 text-green-700">Recommended</Badge>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="text-xs text-muted-foreground leading-relaxed">
+                                                                                Reserve <strong>{monthlyAmount.toLocaleString('cs-CZ')} Kč/mo</strong> from your 20% savings bucket. Best for long-term safety.
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                 </FormLabel>
                                                             </FormItem>
@@ -383,14 +393,18 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                                                                     <RadioGroupItem value="manual" id="s3" className="peer sr-only" />
                                                                 </FormControl>
                                                                 <FormLabel htmlFor="s3" className="flex flex-col w-full cursor-pointer rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                                                                    <div className="flex w-full items-center justify-between mb-1">
-                                                                        <div className="flex items-center gap-2 font-semibold">
+                                                                    <div className="flex gap-3 text-left">
+                                                                        <div className="mt-1">
                                                                             <HandCoins className="h-4 w-4 text-slate-600" />
-                                                                            I'll manage myself
                                                                         </div>
-                                                                    </div>
-                                                                    <div className="text-xs text-muted-foreground">
-                                                                        No automatic transactions. You handle the transfers.
+                                                                        <div className="flex-1">
+                                                                            <div className="flex items-center justify-between mb-1">
+                                                                                <span className="font-semibold text-sm">I'll manage myself</span>
+                                                                            </div>
+                                                                            <div className="text-xs text-muted-foreground leading-relaxed">
+                                                                                No automatic transactions. You handle the transfers.
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                 </FormLabel>
                                                             </FormItem>
@@ -405,7 +419,22 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                             )}
                         </div>
 
-                        <DialogFooter>
+                        <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
+                            {existingGoal ? (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => {
+                                        if (confirm("Are you sure you want to delete this goal?")) {
+                                            removeGoal(existingGoal.id);
+                                            setOpen(false);
+                                        }
+                                    }}
+                                >
+                                    Delete Goal
+                                </Button>
+                            ) : <div></div>}
                             <Button type="submit">{existingGoal ? "Save Changes" : "Create Goal"}</Button>
                         </DialogFooter>
                     </form>

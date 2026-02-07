@@ -24,9 +24,6 @@ export function GoalsCard() {
                     </CardTitle>
                     <CardDescription>Track your progress towards targets.</CardDescription>
                 </div>
-                <AddGoalDialog>
-                    <Button size="sm" variant="outline">Add Goal</Button>
-                </AddGoalDialog>
             </CardHeader>
             <CardContent className="space-y-6 pt-4">
 

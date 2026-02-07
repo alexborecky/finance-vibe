@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input"
 import { useFinanceStore } from "@/lib/store"
 import { useEffect } from "react"
 import { Transaction } from "@/lib/finance-engine"
+import { useAuth } from "@/lib/auth/auth-context"
 
 const formSchema = z.object({
     amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
@@ -46,6 +47,7 @@ export function SimpleSavingsDialog({
     defaultAmount,
     existingTransaction,
 }: SimpleSavingsDialogProps) {
+    const { user } = useAuth()
     const { addTransaction, updateTransaction } = useFinanceStore()
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -68,14 +70,13 @@ export function SimpleSavingsDialog({
             updateTransaction(existingTransaction.id, {
                 amount: Number(values.amount),
             })
-        } else if (date) {
+        } else if (date && user) {
             addTransaction({
-                id: crypto.randomUUID(),
                 amount: Number(values.amount),
                 category: 'saving',
                 date: date,
                 description: 'Monthly Savings (Manual)',
-            })
+            }, user.id)
         }
         onOpenChange(false)
     }

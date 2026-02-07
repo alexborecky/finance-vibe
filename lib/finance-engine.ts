@@ -25,6 +25,14 @@ export interface Goal {
     savingStrategy?: 'recurring-wants' | 'lower-savings' | 'manual';
 }
 
+export interface Asset {
+    id: string;
+    name: string;
+    value: number;
+    category: 'property' | 'investment' | 'savings' | 'vehicle' | 'other';
+    interestRate?: number;
+}
+
 export const TransactionCategorySchema = z.enum(['need', 'want', 'saving', 'income']);
 
 export type Transaction = {
@@ -34,6 +42,8 @@ export type Transaction = {
     date: Date;
     description?: string;
     isRecurring?: boolean;
+    recurringEndDate?: Date;
+    recurringSourceId?: string;
 }
 
 export interface BucketStatus {
@@ -51,6 +61,8 @@ export interface FinanceOverview {
         wants: BucketStatus;
         savings: BucketStatus;
     };
+    netWorth: number;
+    totalAssets: number;
 }
 
 /**
@@ -63,6 +75,18 @@ export const calculateBuckets = (netIncome: number): BudgetBuckets => {
         savings: netIncome * 0.2,
     };
 };
+
+export interface MonthlyIncomeDetails {
+    date: Date;
+    grossIncome: number;
+    netIncome: number;
+    workingDays: number;
+    freeDays: number;
+    billableDays: number;
+    extraIncomeTotal: number;
+    extraIncomes: Transaction[];
+    buckets: BudgetBuckets;
+}
 
 /**
  * Calculates how many months it will take to reach a goal.
@@ -110,10 +134,14 @@ export const IncomeConfigSchema = z.discriminatedUnion('mode', [
     z.object({
         mode: z.literal('fixed'),
         amount: z.number().min(0, "Amount must be positive"),
+        tax: z.number().min(0).optional().default(0),
+        paymentDelay: z.boolean().optional().default(false),
     }),
     z.object({
         mode: z.literal('manual'),
         amount: z.number().min(0, "Amount must be positive"),
+        tax: z.number().min(0).optional().default(0),
+        paymentDelay: z.boolean().optional().default(false),
     }),
     z.object({
         mode: z.literal('hourly'),
@@ -156,19 +184,8 @@ export function calculateMonthlyIncome(config: IncomeConfig, date: Date = new Da
         case 'manual':
             return config.amount;
         case 'hourly':
-            // If date is provided, calculate for specific month
-            // Otherwise calculate average?
-            // "Now, we calculate according to amount of working hours, but let's change that to billable days."
-            // "Projected Income = (Billable days - Free days)*Man Day Rate"
-
-            // For the global "Monthly Income" used in dashboard, we might want to use the current month's projection
-            // or an average. Let's use current month.
-
             const manDayRate = getManDayRate(config);
-
-            // Determine effective month for work calculation
             const effectiveDate = config.paymentDelay ? subMonths(date, 1) : date;
-
             const workingDays = getWorkingDaysInMonth(effectiveDate);
             const monthKey = `${effectiveDate.getFullYear()}-${String(effectiveDate.getMonth() + 1).padStart(2, '0')}`;
             const freeDays = config.adjustments?.[monthKey] || 0;
@@ -177,6 +194,53 @@ export function calculateMonthlyIncome(config: IncomeConfig, date: Date = new Da
             const net = gross - (config.tax || 0);
             return Math.max(0, net);
     }
+}
+
+export function calculateMonthlyIncomeDetails(
+    config: IncomeConfig,
+    transactions: Transaction[],
+    date: Date
+): MonthlyIncomeDetails {
+    const effectiveDate = (config.mode === 'hourly' && config.paymentDelay)
+        ? subMonths(date, 1)
+        : date;
+
+    const workingDays = getWorkingDaysInMonth(effectiveDate);
+    const monthKey = `${effectiveDate.getFullYear()}-${String(effectiveDate.getMonth() + 1).padStart(2, '0')}`;
+    const freeDays = config.mode === 'hourly' ? (config.adjustments?.[monthKey] || 0) : 0;
+    const billableDays = Math.max(0, workingDays - freeDays);
+
+    let baseGross = 0;
+    let baseNet = 0;
+
+    if (config.mode === 'hourly') {
+        const manDayRate = getManDayRate(config);
+        baseGross = billableDays * manDayRate;
+        baseNet = Math.max(0, baseGross - (config.tax || 0));
+    } else {
+        baseGross = config.amount;
+        baseNet = config.amount;
+    }
+
+    // Filter extra incomes for this month
+    const extraIncomes = transactions.filter(t =>
+        t.category === 'income' && isSameMonth(new Date(t.date), date)
+    );
+
+    const extraIncomeTotal = extraIncomes.reduce((sum, t) => sum + t.amount, 0);
+    const totalNet = baseNet + extraIncomeTotal;
+
+    return {
+        date,
+        grossIncome: baseGross,
+        netIncome: totalNet,
+        workingDays,
+        freeDays,
+        billableDays,
+        extraIncomeTotal,
+        extraIncomes,
+        buckets: calculateBuckets(totalNet)
+    };
 }
 
 export function calculateSafeToSpend(
@@ -193,7 +257,8 @@ export function calculateSafeToSpend(
 export function calculateFinanceOverview(
     incomeConfig: IncomeConfig,
     transactions: Transaction[],
-    goals: FinancialGoal[]
+    goals: FinancialGoal[],
+    assets: Asset[] = []
 ): FinanceOverview {
     let totalIncome = calculateMonthlyIncome(incomeConfig);
 
@@ -243,7 +308,7 @@ export function calculateFinanceOverview(
         // but in a real app we'd sum up "Goal Contributions" transactions.
     });
 
-    return {
+    const overview: FinanceOverview = {
         totalIncome,
         buckets: {
             needs: {
@@ -268,7 +333,25 @@ export function calculateFinanceOverview(
                 safeToSpend: calculateSafeToSpend(allocations.savings, spent.savings, reserved.savings),
             },
         },
+        netWorth: 0, // Calculated below
+        totalAssets: 0,
     };
+
+    // Calculate Totals
+    const totalAssets = assets.reduce((sum, a) => sum + a.value, 0);
+    const totalGoalProgress = goals.reduce((sum, g) => sum + g.currentAmount, 0);
+
+    // Remaining budget for the month (Needs + Wants + Savings)
+    // This is a rough approximation of "leftover money from expenses"
+    const remainingBudget =
+        overview.buckets.needs.remaining +
+        overview.buckets.wants.remaining +
+        overview.buckets.savings.remaining;
+
+    overview.totalAssets = totalAssets;
+    overview.netWorth = totalAssets + totalGoalProgress + Math.max(0, remainingBudget);
+
+    return overview;
 }
 
 /**
@@ -290,29 +373,78 @@ export function getExpensesForMonth(transactions: Transaction[], targetDate: Dat
     );
 
     // 3. Project recurring transactions
-    // Check if we already have an "actual" transaction for this recurring item?
-    // For MVP, we assume recurring implies "automatically added".
-    // We only project if there isn't a "concrete" transaction derived from it?
-    // Hard to track derivation without ID linkage.
-    // Simple projection: Just add them as "virtual" transactions.
+    const projectedTransactions = recurringTransactions
+        .filter(t => {
+            // Filter out if past end date
+            if (t.recurringEndDate && isBefore(t.recurringEndDate, targetMonthStart)) {
+                return false;
+            }
+            // Filter out if an "exception" (derived transaction) exists for this month
+            const hasException = actualTransactions.some(at => at.recurringSourceId === t.id);
+            return !hasException;
+        })
+        .map(t => {
+            // Create a new date for this transaction in the target month (preserve day)
+            let projectedDate = setYear(setMonth(new Date(t.date), targetMonthIndex), targetYear);
 
-    const projectedTransactions = recurringTransactions.map(t => {
-        // Create a new date for this transaction in the target month
-        // Preserve the day of month (e.g. 15th)
-        let projectedDate = setYear(setMonth(new Date(t.date), targetMonthIndex), targetYear);
-
-        // Handle edge cases (e.g. 31st in Feb) - date-fns handles this by overflow or clamping?
-        // setMonth clamps to end of month.
-
-        return {
-            ...t,
-            id: `recurring_${t.id}_${targetYear}_${targetMonthIndex}`, // Virtual ID
-            date: projectedDate,
-            description: `${t.description} (Recurring)`, // Visual indicator? Or just same desc.
-            // Ensure we don't treat this projected one as the source of *future* recursions if we saved it back.
-            // But here we are just returning views.
-        };
-    });
+            return {
+                ...t,
+                id: `recurring_${t.id}_${targetYear}_${targetMonthIndex}`,
+                date: projectedDate,
+                description: t.description,
+            };
+        });
 
     return [...actualTransactions, ...projectedTransactions];
+}
+
+/**
+ * Checks for negative balances in the next X months.
+ * Returns the first date where a negative balance is detected.
+ */
+export function checkProjectedSolvency(
+    incomeConfig: IncomeConfig,
+    transactions: Transaction[],
+    goals: FinancialGoal[],
+    monthsToCheck: number = 12
+): { hasAlert: boolean; firstFailingMonth: Date | null } {
+    const today = new Date();
+
+    for (let i = 0; i < monthsToCheck; i++) {
+        const checkDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
+
+        // 1. Get Income for this month
+        // We use calculateMonthlyIncomeDetails to get a more accurate net income including extra incomes
+        const incomeDetails = calculateMonthlyIncomeDetails(incomeConfig, transactions, checkDate);
+        const totalIncome = incomeDetails.netIncome;
+
+        // 2. Get Expenses for this month using the existing projection logic
+        const monthlyTransactions = getExpensesForMonth(transactions, checkDate);
+
+        const spent = {
+            needs: 0,
+            wants: 0,
+            savings: 0,
+        };
+
+        monthlyTransactions.forEach((t) => {
+            if (t.category === 'need') spent.needs += t.amount;
+            if (t.category === 'want') spent.wants += t.amount;
+            if (t.category === 'saving') spent.savings += t.amount;
+        });
+
+        const allocations = calculateBuckets(totalIncome);
+
+        const remaining = {
+            needs: allocations.needs - spent.needs,
+            wants: allocations.wants - spent.wants,
+        };
+
+        // Check for negative balance in Needs or Wants
+        if (remaining.needs < 0 || remaining.wants < 0) {
+            return { hasAlert: true, firstFailingMonth: checkDate };
+        }
+    }
+
+    return { hasAlert: false, firstFailingMonth: null };
 }

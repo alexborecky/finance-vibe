@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.3] - 2026-02-07
+
+### Added
+- **Expenses Alert**: Added a badge in the expenses header that warns if any future month (next 12 months) is projected to have a negative balance.
+
+## [0.2.2] - 2026-02-05
+
+### Added
+- **Authentication & User Flow**: Implemented Supabase-based login, registration ("ask for invite"), and landing page routing.
+- **Admin Dashboard**: New administrative interface for managing users and system data.
+- **Income Table Persistence**: User preferences like column widths and visibility are now saved to the database.
+
+### Changed
+- **Extra Income UI**: Replaced accordion with a dedicated modal for editing and deleting entries.
+- **Income Table**: Refined column styling (text buttons for settings) and responsive widths.
+- **UI Styling**: Cleaned up padding and headers on income configuration pages.
+
+### Fixed
+- **React Hooks**: Resolved "Rendered more hooks than during the previous render" error in Expenses page.
+- **Database Schema**: Fixed income category constraints and data persistence issues.
+
+
 ## [0.2.1] - 2026-02-01
 
 ### Added

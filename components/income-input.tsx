@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { IncomeConfig, calculateMonthlyIncome, calculateBuckets } from "@/lib/finance-engine"
 import { useFinanceStore } from "@/lib/store"
+import { useAuth } from "@/lib/auth/auth-context"
 import { Check } from "lucide-react"
 import { format } from "date-fns"
 
@@ -21,6 +22,7 @@ interface IncomeInputProps {
 
 export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputProps) {
     const router = useRouter()
+    const { user } = useAuth()
     const { setIncomeConfig, incomeConfig } = useFinanceStore()
 
     // Initialize local state from global store
@@ -52,9 +54,19 @@ export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputPr
         let config: IncomeConfig;
 
         if (mode === 'fixed') {
-            config = { mode: 'fixed', amount: Number(amount) || 0 };
+            config = {
+                mode: 'fixed',
+                amount: Number(amount) || 0,
+                tax: 0,
+                paymentDelay: false
+            };
         } else if (mode === 'manual') {
-            config = { mode: 'manual', amount: Number(amount) || 0 };
+            config = {
+                mode: 'manual',
+                amount: Number(amount) || 0,
+                tax: 0,
+                paymentDelay: false
+            };
         } else {
             config = {
                 mode: 'hourly',
@@ -70,7 +82,7 @@ export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputPr
         setCalculatedIncome(income);
 
         if (save) {
-            setIncomeConfig(config);
+            setIncomeConfig(config, user?.id);
             if (onSave) onSave();
             if (redirectOnSave) {
                 router.push(redirectOnSave);
@@ -82,11 +94,7 @@ export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputPr
 
     return (
         <Card className={`w-full max-w-md mx-auto shadow-lg border-t-4 border-t-primary animate-in fade-in zoom-in duration-500 ${className}`}>
-            <CardHeader>
-                <CardTitle className="text-2xl font-bold text-primary">Income Settings</CardTitle>
-                <CardDescription>Configure your income source to calculate limits.</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="px-0">
                 <Tabs value={mode} onValueChange={(v) => setMode(v as any)} className="w-full">
                     <TabsList className="grid w-full grid-cols-3 mb-6">
                         <TabsTrigger value="fixed">Fixed</TabsTrigger>
@@ -171,7 +179,7 @@ export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputPr
                     </div>
                 </Tabs>
             </CardContent>
-            <CardFooter className="flex flex-col gap-4">
+            <CardFooter className="flex flex-col gap-4 px-0">
                 {/* Real-time Buckets Preview */}
                 <div className="w-full space-y-3 pt-4 border-t mb-4">
                     <div className="flex justify-between items-center">

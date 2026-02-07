@@ -10,12 +10,18 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { GripVertical, Trash2, Pencil, RefreshCw, AlertTriangle, Plus } from "lucide-react"
+import { GripVertical, Trash2, Pencil, RefreshCw, AlertTriangle, Plus, Info } from "lucide-react"
 import { Transaction } from "@/lib/finance-engine"
 import { format } from "date-fns"
 import { useDraggable, useDroppable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
 import { cn } from "@/lib/utils"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface ExpensesTableProps {
     id: 'need' | 'want';
@@ -73,27 +79,58 @@ export function ExpensesTable({ id, title, transactions, limit, spent, onAdd, on
                             <h3 className="font-semibold text-lg">
                                 {title}
                             </h3>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="p-1 rounded-full hover:bg-muted cursor-help transition-colors">
+                                            <Info className="h-4 w-4 text-muted-foreground" />
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="max-w-[200px] text-xs">
+                                            {id === 'need'
+                                                ? "Needs budget is calculated as 50% of your total net income for this month."
+                                                : "Wants budget is calculated as 30% of your total net income for this month."}
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+
                             <Badge variant="outline" className={cn("font-normal flex items-center gap-1", statusColor)}>
                                 {isWarning && !isError && <AlertTriangle className="h-3 w-3" />}
                                 {isError && <AlertTriangle className="h-3 w-3" />}
                                 {remaining < 0
-                                    ? `${Math.abs(remaining).toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 })} over the budget`
+                                    ? `${Math.abs(remaining).toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 })} over`
                                     : `${remaining.toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 })} left`
                                 }
                             </Badge>
                         </div>
-                        {onFixBalance && remaining < 0 && id === 'need' && (
-                            <Button size="sm" variant="destructive" onClick={onFixBalance} className="h-8 px-2 text-xs ml-2">
-                                <RefreshCw className="h-3.5 w-3.5 mr-1" /> Fix Balance
-                            </Button>
-                        )}
-                        {onAdd && (
-                            <Button size="sm" variant="outline" onClick={onAdd} className="h-8 px-2 text-xs ml-2">
-                                <Plus className="h-3.5 w-3.5 mr-1" /> Add
-                            </Button>
-                        )}
+
+                        <div className="flex items-center gap-2">
+                            {onFixBalance && remaining < 0 && id === 'need' && (
+                                <Button size="sm" variant="destructive" onClick={onFixBalance} className="h-8 px-2 text-xs">
+                                    <RefreshCw className="h-3.5 w-3.5 mr-1" /> Fix
+                                </Button>
+                            )}
+                            {onAdd && (
+                                <Button size="sm" variant="outline" onClick={onAdd} className="h-8 px-2 text-xs">
+                                    <Plus className="h-3.5 w-3.5 mr-1" /> Add
+                                </Button>
+                            )}
+                        </div>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full mt-3 overflow-hidden">
+
+                    <div className="flex justify-between items-end mt-4 mb-1">
+                        <div className="text-sm font-bold">
+                            {spent.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
+                            <span className="text-xs font-normal text-muted-foreground ml-1">spent</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                            of {limit.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
+                        </div>
+                    </div>
+
+                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                         <div
                             className={cn("h-full rounded-full transition-all",
                                 isError ? "bg-red-500" : (isWarning ? "bg-orange-500" : (id === 'need' ? 'bg-blue-500' : 'bg-purple-500'))
@@ -193,7 +230,7 @@ export function TransactionRowContent({
             </TableCell>
             <TableCell className={cn("font-medium", isOverlay && "w-[200px]")}>
                 <div className="flex flex-col">
-                    <span>{(transaction.description || "Expense").replace(' (Recurring)', '')}</span>
+                    <span>{(transaction.description || "Expense").replace(/ \(Recurring\)+$/g, '')}</span>
                     {transaction.isRecurring && (
                         <span className="flex items-center text-[10px] text-muted-foreground mt-0.5">
                             <RefreshCw className="h-3 w-3 mr-1" /> Recurring
@@ -207,7 +244,7 @@ export function TransactionRowContent({
             </TableCell>
             <TableCell className={cn(isOverlay && "w-[100px]")}>
                 <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity gap-1">
-                    {!isVirtual && !isOverlay && (
+                    {!isOverlay && (
                         <>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={onEdit}>
                                 <Pencil className="h-3.5 w-3.5" />

@@ -1,8 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useFinanceStore } from "@/lib/store"
-import { calculateMonthlyIncome, calculateBuckets, getExpensesForMonth, Transaction } from "@/lib/finance-engine"
+import { Badge } from "@/components/ui/badge"
+import { format } from "date-fns"
+import { checkProjectedSolvency, calculateMonthlyIncome, calculateBuckets, getExpensesForMonth, Transaction, calculateMonthlyIncomeDetails } from "@/lib/finance-engine"
 import { MonthPicker } from "@/components/month-picker"
 import { ExpensesTable, TransactionRowContent } from "@/components/expenses-table"
 import { AddExpenseDialog } from "@/components/add-expense-dialog"
@@ -14,10 +16,21 @@ import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, useSensor, useSe
 import { cn } from "@/lib/utils"
 import { createPortal } from "react-dom"
 import { Table, TableBody, TableRow } from "@/components/ui/table"
+import { useAuth } from "@/lib/auth/auth-context"
 
 export default function ExpensesPage() {
-    const { incomeConfig, transactions, updateTransaction, deleteTransaction, addTransaction } = useFinanceStore()
+    const { user } = useAuth()
+    const { incomeConfig, transactions, updateTransaction, deleteTransaction, addTransaction, goals } = useFinanceStore()
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date())
+    const [isMounted, setIsMounted] = useState(false)
+
+    // Handle hydration mismatch for Date
+    useEffect(() => {
+        setIsMounted(true)
+    }, [])
+
+    // Check for future negative balances
+    const { hasAlert, firstFailingMonth } = checkProjectedSolvency(incomeConfig, transactions, goals, 12)
 
     // Drag State
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -29,9 +42,11 @@ export default function ExpensesPage() {
     const [defaultCategory, setDefaultCategory] = useState<'need' | 'want'>('need')
     const [isFixBalanceOpen, setIsFixBalanceOpen] = useState(false)
 
-    // 1. Calculate Monthly Limits
-    const monthlyIncome = calculateMonthlyIncome(incomeConfig)
-    const buckets = calculateBuckets(monthlyIncome)
+    // 1. Calculate Monthly Limits based on CURRENT month selection
+    // Instead of calculateMonthlyIncome(incomeConfig), we use calculateMonthlyIncomeDetails
+    // to include extra income and adjustments for the specific month.
+    const monthDetails = calculateMonthlyIncomeDetails(incomeConfig, transactions, currentMonth)
+    const buckets = monthDetails.buckets
 
     // 2. Get Expenses for Selected Month (including Recurring projections)
     const monthlyTransactions = getExpensesForMonth(transactions, currentMonth)
@@ -101,10 +116,28 @@ export default function ExpensesPage() {
         setIsDialogOpen(true)
     }
 
-    const handleDelete = (id: string) => {
-        if (id.startsWith('recurring_')) return;
-        if (confirm("Are you sure you want to delete this expense?")) {
-            deleteTransaction(id)
+    const handleDelete = async (id: string) => {
+        const isVirtual = id.startsWith('recurring_')
+
+        if (confirm(`Are you sure you want to delete this ${isVirtual ? 'recurring ' : ''}expense${isVirtual ? ' for this month' : ''}?`)) {
+            if (isVirtual) {
+                if (!user) return
+                const originalId = id.split('_')[1]
+                // Create an exception with 0 amount? Or just a special flag? 
+                // Our getExpensesForMonth filters out recurring if an exception exists.
+                // We don't have a "deleted" flag, so we just add a transaction with amount 0 
+                // or just skip it. Let's add a transaction with 0 amount to mark it as "handled".
+                addTransaction({
+                    amount: 0,
+                    category: 'need', // temporary, will be filtered out by getExpensesForMonth anyway
+                    date: currentMonth,
+                    description: 'Deleted Recurring Instance',
+                    isRecurring: false,
+                    recurringSourceId: originalId,
+                }, user.id)
+            } else {
+                deleteTransaction(id)
+            }
         }
     }
 
@@ -114,31 +147,49 @@ export default function ExpensesPage() {
 
         // 1. Create Negative Transaction for Needs to offset deficit
         // This makes Needs spent go down (or effectively covered)
-        addTransaction({
-            id: crypto.randomUUID(),
-            amount: -deficit,
-            category: 'need',
-            date: date,
-            description: `Offset from ${sourceCategory === 'want' ? 'Wants' : 'Savings'}`,
-        })
+        if (user) {
+            addTransaction({
+                amount: -deficit,
+                category: 'need',
+                date: date,
+                description: `Offset from ${sourceCategory === 'want' ? 'Wants' : 'Savings'}`,
+            }, user.id)
 
-        // 2. Create Positive Transaction for Source to use up its budget
-        addTransaction({
-            id: crypto.randomUUID(),
-            amount: deficit,
-            category: sourceCategory,
-            date: date,
-            description: 'Covered Needs deficit',
-        })
+            // 2. Create Positive Transaction for Source to use up its budget
+            addTransaction({
+                amount: deficit,
+                category: sourceCategory,
+                date: date,
+                description: 'Covered Needs deficit',
+            }, user.id)
+        }
 
         setIsFixBalanceOpen(false)
+    }
+
+
+
+    if (!isMounted) {
+        return <div className="p-8">Loading expenses...</div>
     }
 
     return (
         <div className="flex flex-col gap-6 h-[calc(100vh-10rem)]">
             <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-3xl font-bold tracking-tight">Expenses</h2>
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-3xl font-bold tracking-tight">Expenses</h2>
+                        {hasAlert && firstFailingMonth && (
+                            <Badge
+                                variant="destructive"
+                                className="cursor-pointer hover:bg-red-600 transition-colors animate-pulse"
+                                onClick={() => setCurrentMonth(firstFailingMonth)}
+                            >
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Projecting negative balance in {format(firstFailingMonth, 'MMMM')}
+                            </Badge>
+                        )}
+                    </div>
                     <Button onClick={() => openAddDialog('need')}>
                         <Plus className="mr-2 h-4 w-4" /> Add Expense
                     </Button>
@@ -146,74 +197,6 @@ export default function ExpensesPage() {
                 <MonthPicker currentMonth={currentMonth} onMonthChange={setCurrentMonth} />
             </div>
 
-            {/* Overview Cards for Current Selection */}
-            <div className="grid gap-4 md:grid-cols-2">
-                {/* Needs Card */}
-                <Card className={cn("md:col-span-1 shadow-sm border-l-4", remainingNeeds < 0 ? "border-l-red-600 bg-red-50/10" : "border-l-blue-600")}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Needs Budget</CardTitle>
-                        {remainingNeeds < 0 ? <AlertTriangle className="h-4 w-4 text-red-600" /> : <AlertCircle className="h-4 w-4 text-blue-600" />}
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex justify-between items-end">
-                            <div className={cn("text-2xl font-bold", remainingNeeds < 0 && "text-red-600")}>
-                                {spentNeeds.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
-                                <span className="text-sm font-normal text-muted-foreground ml-2">spent</span>
-                            </div>
-                            <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                                of {buckets.needs.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
-                            </div>
-                        </div>
-
-                        {remainingNeeds < 0 && (
-                            <div className="flex items-center gap-1 mt-1 text-xs text-red-600 font-medium">
-                                <AlertTriangle className="h-3 w-3" />
-                                Over budget by {Math.abs(remainingNeeds).toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
-                            </div>
-                        )}
-
-                        <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full mt-3 overflow-hidden">
-                            <div
-                                className={cn("h-full rounded-full transition-all", remainingNeeds < 0 ? "bg-red-600" : "bg-blue-600")}
-                                style={{ width: `${Math.min(100, (spentNeeds / buckets.needs) * 100)}%` }}
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Wants Card */}
-                <Card className={cn("md:col-span-1 shadow-sm border-l-4", remainingWants < 0 ? "border-l-red-600 bg-red-50/10" : "border-l-purple-600")}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Wants Budget</CardTitle>
-                        {remainingWants < 0 ? <AlertTriangle className="h-4 w-4 text-red-600" /> : <TrendingUp className="h-4 w-4 text-purple-600" />}
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex justify-between items-end">
-                            <div className={cn("text-2xl font-bold", remainingWants < 0 && "text-red-600")}>
-                                {spentWants.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
-                                <span className="text-sm font-normal text-muted-foreground ml-2">spent</span>
-                            </div>
-                            <div className="text-sm font-medium text-purple-600 dark:text-purple-400">
-                                of {buckets.wants.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
-                            </div>
-                        </div>
-
-                        {remainingWants < 0 && (
-                            <div className="flex items-center gap-1 mt-1 text-xs text-red-600 font-medium">
-                                <AlertTriangle className="h-3 w-3" />
-                                Over budget by {Math.abs(remainingWants).toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
-                            </div>
-                        )}
-
-                        <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full mt-3 overflow-hidden">
-                            <div
-                                className={cn("h-full rounded-full transition-all", remainingWants < 0 ? "bg-red-600" : "bg-purple-600")}
-                                style={{ width: `${Math.min(100, (spentWants / buckets.wants) * 100)}%` }}
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
 
             {/* Split View with DND */}
             <DndContext
@@ -225,7 +208,7 @@ export default function ExpensesPage() {
                 <div className="flex-1 min-h-0 grid md:grid-cols-2 gap-6 pb-2">
                     <ExpensesTable
                         id="need"
-                        title="Needs (50%)"
+                        title="Needs"
                         transactions={needsTransactions}
                         limit={buckets.needs}
                         spent={spentNeeds}
@@ -236,7 +219,7 @@ export default function ExpensesPage() {
                     />
                     <ExpensesTable
                         id="want"
-                        title="Wants (30%)"
+                        title="Wants"
                         transactions={wantsTransactions}
                         limit={buckets.wants}
                         spent={spentWants}
