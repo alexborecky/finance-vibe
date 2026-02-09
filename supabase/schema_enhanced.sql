@@ -94,6 +94,7 @@ create table if not exists public.goals (
   current_amount numeric default 0 check (current_amount >= 0),
   type text not null check (type in ('short-term', 'long-term')),
   deadline date,
+  saving_strategy text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.4] - 2026-02-09
+
+### Added
+- **Multi-Source Savings**: New dialog for adding savings from various sources (One-time, Needs leftover, Wants leftover).
+- **Savings Editing**: Implemented modal-based editing for individual savings entries, matching the Extra Income UI.
+- **UI Indicators**: Added descriptive titles to key dashboard and module cards for better context and navigation.
+
+### Changed
+- **Global Scrollability**: Enabled scrollable containers for the Expense table and Dashboard to prevent layout breaks on small screens.
+- **Enhanced Compactness**: Reduced table row padding and adjusted card spacing to "hug" content better across the application.
+- **Current Month Focus**: Improved visibility by highlighting the current month in selection menus.
+
+### Fixed
+- **Data Persistence**: Refactored form submission logic across Goals, Transactions, and Income to ensure reliable saving to the backend (Supabase).
+- **Content Clipping**: Fixed overflow issues in Income and Expense cards using `overflow-hidden`.
+- **Hydration & State**: Resolved various React hydration errors and form reset bugs in dialog components.
+
 ## [0.2.3] - 2026-02-07
 
 ### Added

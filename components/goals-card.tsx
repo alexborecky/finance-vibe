@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { useFinanceStore } from "@/lib/store"
 import { Laptop, Home, Edit2 } from "lucide-react"
@@ -15,8 +15,11 @@ export function GoalsCard() {
     const longTermGoals = goals.filter(g => g.type === 'long-term')
 
     return (
-        <Card className="h-full shadow-md px-4">
-            <CardContent className="space-y-0 p-0">
+        <Card className="h-full shadow-md">
+            <CardHeader>
+                <CardTitle>Financial Goals</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-0">
 
                 {/* Short Term Section */}
                 {shortTermGoals.length > 0 && (

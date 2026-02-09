@@ -147,7 +147,7 @@ export default function ExpensesPage() {
     }
     const handleFixBalance = (sourceCategory: 'want' | 'saving') => {
         const deficit = Math.abs(remainingNeeds)
-        const date = new Date()
+        const date = new Date(currentMonth)
 
         // 1. Create Negative Transaction for Needs to offset deficit
         // This makes Needs spent go down (or effectively covered)

@@ -100,6 +100,7 @@ export interface Database {
                     current_amount: number
                     type: 'short-term' | 'long-term'
                     deadline: string | null
+                    saving_strategy: string | null
                     created_at: string
                 }
                 Insert: {
@@ -110,6 +111,7 @@ export interface Database {
                     current_amount?: number
                     type: 'short-term' | 'long-term'
                     deadline?: string | null
+                    saving_strategy?: string | null
                     created_at?: string
                 }
                 Update: {
@@ -120,6 +122,7 @@ export interface Database {
                     current_amount?: number
                     type?: 'short-term' | 'long-term'
                     deadline?: string | null
+                    saving_strategy?: string | null
                     created_at?: string
                 }
             }

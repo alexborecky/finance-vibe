@@ -71,7 +71,7 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
     const [isDeletePaymentsOpen, setIsDeletePaymentsOpen] = useState(false)
     const [mounted, setMounted] = useState(false)
     const { user } = useAuth()
-    const { addGoal, editGoal, removeGoal, addTransaction, transactions } = useFinanceStore()
+    const { addGoal, editGoal, removeGoal, addTransaction, updateTransaction, deleteTransaction, transactions } = useFinanceStore()
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -116,51 +116,85 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
         }
     }, [open, existingGoal, form])
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
-        if (existingGoal) {
-            editGoal(existingGoal.id, {
-                name: values.name,
-                targetAmount: Number(values.targetAmount),
-                currentAmount: Number(values.currentAmount),
-                type: values.type as 'short-term' | 'long-term',
-                targetDate: targetDateEnabled ? values.targetDate : undefined,
-                savingStrategy: targetDateEnabled ? values.savingStrategy : undefined,
-            })
-        } else if (user) {
-            addGoal({
-                name: values.name,
-                targetAmount: Number(values.targetAmount),
-                currentAmount: Number(values.currentAmount),
-                type: values.type as 'short-term' | 'long-term',
-                targetDate: targetDateEnabled ? values.targetDate : undefined,
-                savingStrategy: targetDateEnabled ? values.savingStrategy : undefined,
-            }, user.id)
-        }
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
-        // Handle Automated Transactions
-        if (targetDateEnabled && values.targetDate && values.savingStrategy && values.savingStrategy !== 'manual') {
-            // Calculate monthly amount
-            const remaining = Number(values.targetAmount) - Number(values.currentAmount)
-            const months = Math.max(1, differenceInMonths(values.targetDate, new Date()))
-            const monthlyAmount = Math.ceil(remaining / months)
+    async function onSubmit(values: z.infer<typeof formSchema>) {
+        if (!user) return;
 
-            if (monthlyAmount > 0) {
-                const category = values.savingStrategy === 'recurring-wants' ? 'want' : 'saving'
+        setIsSubmitting(true)
+        setError(null)
 
-                if (user) {
-                    addTransaction({
-                        amount: monthlyAmount,
-                        category: category,
-                        date: new Date(),
-                        description: `Saving for ${values.name}`,
-                        isRecurring: true
-                    }, user.id)
+        try {
+            if (existingGoal) {
+                await editGoal(existingGoal.id, {
+                    name: values.name,
+                    targetAmount: Number(values.targetAmount),
+                    currentAmount: Number(values.currentAmount),
+                    type: values.type as 'short-term' | 'long-term',
+                    targetDate: targetDateEnabled ? values.targetDate : undefined,
+                    savingStrategy: targetDateEnabled ? values.savingStrategy : undefined,
+                })
+            } else {
+                await addGoal({
+                    name: values.name,
+                    targetAmount: Number(values.targetAmount),
+                    currentAmount: Number(values.currentAmount),
+                    type: values.type as 'short-term' | 'long-term',
+                    targetDate: targetDateEnabled ? values.targetDate : undefined,
+                    savingStrategy: targetDateEnabled ? values.savingStrategy : undefined,
+                }, user.id)
+            }
+
+            // Handle Automated Transactions
+            // We await these as well to ensure everything is synced before closing
+            if (targetDateEnabled && values.targetDate && values.savingStrategy && values.savingStrategy !== 'manual') {
+                const remaining = Number(values.targetAmount) - Number(values.currentAmount)
+                const months = Math.max(1, differenceInMonths(values.targetDate, new Date()))
+                const monthlyAmount = Math.ceil(remaining / months)
+
+                if (monthlyAmount > 0) {
+                    const category = values.savingStrategy === 'recurring-wants' ? 'want' : 'saving'
+                    const description = `Saving for ${values.name}`
+                    const oldDescription = existingGoal ? `Saving for ${existingGoal.name}` : description
+
+                    const existingTx = transactions.find(t => t.description === oldDescription && t.isRecurring);
+
+                    if (existingTx) {
+                        await updateTransaction(existingTx.id, {
+                            amount: monthlyAmount,
+                            category: category,
+                            description: description,
+                            recurringEndDate: values.targetDate
+                        })
+                    } else {
+                        await addTransaction({
+                            amount: monthlyAmount,
+                            category: category,
+                            date: new Date(),
+                            description: description,
+                            isRecurring: true,
+                            recurringEndDate: values.targetDate
+                        }, user.id)
+                    }
+                }
+            } else if (existingGoal && (values.savingStrategy === 'manual' || !targetDateEnabled)) {
+                // If switched to manual or target date disabled, remove any existing automated transaction
+                const oldDescription = `Saving for ${existingGoal.name}`
+                const existingTx = transactions.find(t => t.description === oldDescription && t.isRecurring);
+                if (existingTx) {
+                    await deleteTransaction(existingTx.id);
                 }
             }
-        }
 
-        setOpen(false)
-        form.reset()
+            setOpen(false)
+            form.reset()
+        } catch (e: any) {
+            console.error("Error saving goal:", e)
+            setError(e.message || "Failed to save goal. Please try again.")
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     if (!mounted) {
@@ -266,6 +300,8 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                                         if (!checked) {
                                             form.setValue('targetDate', undefined)
                                             form.setValue('savingStrategy', undefined)
+                                        } else if (!form.getValues('savingStrategy')) {
+                                            form.setValue('savingStrategy', 'recurring-wants')
                                         }
                                     }}
                                 />
@@ -354,7 +390,10 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                                                                 <FormControl>
                                                                     <RadioGroupItem value="recurring-wants" id="s1" className="peer sr-only" />
                                                                 </FormControl>
-                                                                <FormLabel htmlFor="s1" className="flex flex-col w-full cursor-pointer rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary relative overflow-hidden">
+                                                                <FormLabel htmlFor="s1" className={cn(
+                                                                    "flex flex-col w-full cursor-pointer rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground relative overflow-hidden",
+                                                                    field.value === "recurring-wants" && "border-primary bg-primary/5"
+                                                                )}>
                                                                     <div className="flex gap-3 text-left">
                                                                         <div className="mt-1">
                                                                             <Wallet className="h-4 w-4 text-purple-600" />
@@ -379,7 +418,10 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                                                                 <FormControl>
                                                                     <RadioGroupItem value="lower-savings" id="s2" className="peer sr-only" />
                                                                 </FormControl>
-                                                                <FormLabel htmlFor="s2" className="flex flex-col w-full cursor-pointer rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary relative overflow-hidden">
+                                                                <FormLabel htmlFor="s2" className={cn(
+                                                                    "flex flex-col w-full cursor-pointer rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground relative overflow-hidden",
+                                                                    field.value === "lower-savings" && "border-primary bg-primary/5"
+                                                                )}>
                                                                     <div className="flex gap-3 text-left">
                                                                         <div className="mt-1">
                                                                             <PiggyBank className="h-4 w-4 text-emerald-600" />
@@ -404,7 +446,10 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                                                                 <FormControl>
                                                                     <RadioGroupItem value="manual" id="s3" className="peer sr-only" />
                                                                 </FormControl>
-                                                                <FormLabel htmlFor="s3" className="flex flex-col w-full cursor-pointer rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                                                <FormLabel htmlFor="s3" className={cn(
+                                                                    "flex flex-col w-full cursor-pointer rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground",
+                                                                    field.value === "manual" && "border-primary bg-primary/5"
+                                                                )}>
                                                                     <div className="flex gap-3 text-left">
                                                                         <div className="mt-1">
                                                                             <HandCoins className="h-4 w-4 text-slate-600" />
@@ -431,6 +476,12 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                             )}
                         </div>
 
+                        {error && (
+                            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                                {error}
+                            </div>
+                        )}
+
                         <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
                             {existingGoal ? (
                                 <Button
@@ -453,7 +504,9 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                                     Delete Goal
                                 </Button>
                             ) : <div></div>}
-                            <Button type="submit">{existingGoal ? "Save Changes" : "Create Goal"}</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? "Saving..." : (existingGoal ? "Save Changes" : "Create Goal")}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </Form>

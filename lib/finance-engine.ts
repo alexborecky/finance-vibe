@@ -258,9 +258,14 @@ export function calculateFinanceOverview(
     incomeConfig: IncomeConfig,
     transactions: Transaction[],
     goals: FinancialGoal[],
-    assets: Asset[] = []
+    assets: Asset[] = [],
+    referenceDate: Date = new Date()
 ): FinanceOverview {
-    let totalIncome = calculateMonthlyIncome(incomeConfig);
+    const currentMonthTransactions = transactions.filter(t =>
+        isSameMonth(new Date(t.date), referenceDate)
+    );
+
+    let totalIncome = calculateMonthlyIncome(incomeConfig, referenceDate);
 
     // 1. Calculate Spent per Category and Add Additional Income
     const spent = {
@@ -269,7 +274,7 @@ export function calculateFinanceOverview(
         savings: 0,
     };
 
-    transactions.forEach((t) => {
+    currentMonthTransactions.forEach((t) => {
         if (t.category === 'need') spent.needs += t.amount;
         if (t.category === 'want') spent.wants += t.amount;
         if (t.category === 'saving') spent.savings += t.amount;

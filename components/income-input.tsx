@@ -49,7 +49,10 @@ export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputPr
         handleCalculate(false)
     }, [mode, amount, hourlyRate, hoursPerWeek, tax, paymentDelay, incomeConfig.mode === 'hourly' ? incomeConfig.adjustments : null])
 
-    const handleCalculate = (save: boolean = false) => {
+    const [isSaving, setIsSaving] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const handleCalculate = async (save: boolean = false) => {
         let income = 0
         let config: IncomeConfig;
 
@@ -82,10 +85,20 @@ export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputPr
         setCalculatedIncome(income);
 
         if (save) {
-            setIncomeConfig(config, user?.id);
-            if (onSave) onSave();
-            if (redirectOnSave) {
-                router.push(redirectOnSave);
+            if (!user) return;
+            setIsSaving(true);
+            setError(null);
+
+            try {
+                await setIncomeConfig(config, user.id);
+                if (onSave) onSave();
+                if (redirectOnSave) {
+                    router.push(redirectOnSave);
+                }
+            } catch (error: any) {
+                console.error("Failed to save income config:", error);
+                setError("Failed to save settings. Please try again.");
+                setIsSaving(false); // Only stop loading on error, otherwise keep loading while redirecting
             }
         }
     }
@@ -209,9 +222,15 @@ export function IncomeInput({ redirectOnSave, onSave, className }: IncomeInputPr
                     </div>
                 </div>
 
+                {error && (
+                    <div className="w-full bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                        {error}
+                    </div>
+                )}
+
                 <div className="flex gap-2 w-full">
-                    <Button className="w-full" onClick={() => handleCalculate(true)}>
-                        <Check className="mr-2 h-4 w-4" /> Save & Continue
+                    <Button className="w-full" onClick={() => handleCalculate(true)} disabled={isSaving}>
+                        {isSaving ? "Saving..." : <><Check className="mr-2 h-4 w-4" /> Save & Continue</>}
                     </Button>
                 </div>
             </CardFooter>

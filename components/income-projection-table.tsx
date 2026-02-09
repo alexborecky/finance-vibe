@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { useFinanceStore } from "@/lib/store"
 import { calculateMonthlyIncomeDetails, getWorkingDaysInMonth, MonthlyIncomeDetails } from "@/lib/finance-engine"
-import { format, subMonths } from "date-fns"
+import { format, subMonths, isThisMonth } from "date-fns"
 import { Info, Settings2, Pencil } from "lucide-react"
 import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
@@ -239,8 +239,8 @@ export function IncomeProjectionTable({ className }: { className?: string }) {
                 </DropdownMenu>
             </div>
 
-            <div className="flex-1 min-h-0 rounded-md border bg-card text-card-foreground shadow-sm">
-                <Table className="w-full" containerClassName="h-full" style={{ tableLayout: "fixed" }}>
+            <div className="flex-1 min-h-0 rounded-md border bg-card text-card-foreground shadow-sm overflow-hidden">
+                <Table className="w-full" containerClassName="h-full overflow-y-auto" style={{ tableLayout: "fixed" }}>
                     <TableHeader>
                         <TableRow>
                             <ResizableHeader id="month" align="left">Month</ResizableHeader>
@@ -284,9 +284,10 @@ export function IncomeProjectionTable({ className }: { className?: string }) {
 
                             return (
                                 <React.Fragment key={date.toISOString()}>
-                                    <TableRow>
+                                    <TableRow className={cn(isThisMonth(date) && "bg-slate-50 dark:bg-slate-900/50")}>
                                         <TableCell className="font-medium truncate">
                                             {format(date, "MMMM")}
+                                            {isThisMonth(date) && <span className="ml-2 text-xs text-blue-600 font-normal">(Current)</span>}
                                         </TableCell>
                                         {incomeConfig.mode === 'hourly' && (
                                             <>

@@ -91,24 +91,39 @@ export function AddIncomeDialog({
         }
     }, [isOpen, existingTransaction, form])
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
-        if (existingTransaction) {
-            updateTransaction(existingTransaction.id, {
-                amount: Number(values.amount),
-                description: values.description,
-                category: 'income',
-                date: values.date,
-            })
-        } else if (user) {
-            addTransaction({
-                amount: Number(values.amount),
-                description: values.description,
-                category: 'income',
-                date: values.date,
-            }, user.id)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    async function onSubmit(values: z.infer<typeof formSchema>) {
+        if (!user && !existingTransaction) return
+
+        setIsSubmitting(true)
+        setError(null)
+
+        try {
+            if (existingTransaction) {
+                await updateTransaction(existingTransaction.id, {
+                    amount: Number(values.amount),
+                    description: values.description,
+                    category: 'income',
+                    date: values.date,
+                })
+            } else if (user) {
+                await addTransaction({
+                    amount: Number(values.amount),
+                    description: values.description,
+                    category: 'income',
+                    date: values.date,
+                }, user.id)
+            }
+            setIsOpen(false)
+            form.reset()
+        } catch (e: any) {
+            console.error("Error saving income:", e)
+            setError(e.message || "Failed to save income.")
+        } finally {
+            setIsSubmitting(false)
         }
-        setIsOpen(false)
-        form.reset()
     }
 
     return (
@@ -195,8 +210,15 @@ export function AddIncomeDialog({
                             )}
                         />
 
+                        {error && (
+                            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                                {error}
+                            </div>
+                        )}
                         <DialogFooter>
-                            <Button type="submit">{existingTransaction ? "Save Changes" : "Save Income"}</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? "Saving..." : (existingTransaction ? "Save Changes" : "Save Income")}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </Form>

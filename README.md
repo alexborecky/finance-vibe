@@ -1,8 +1,15 @@
-# Finance Vibe 💸
+# Finance Vibe 💸 `v0.2.4`
 
 ![Finance Vibe Hero](./public/images/hero.png)
 
-**Finance Vibe** is a premium personal finance application designed to turn budgeting from a chore into a rewarding experience. Built on the proven **50/30/20 rule**, it helps you allocate your income efficiently while maximizing your savings potential.
+**Finance Vibe** is a high-performance personal finance dashboard engineered for precision and visual excellence. Built on the core principles of the **50/30/20 rule**, it empowers you to master your cash flow, automate savings, and visualize your financial future with a premium, glassmorphism-inspired interface.
+
+## ✉️ Get an Invitation
+
+Finance Vibe is currently in a controlled beta. If you would like to try out the app and start your own financial journey, please contact the developer for an invitation code:
+
+- **Email**: [boreckyalex@gmail.com](mailto:boreckyalex@gmail.com)
+- **Subject**: Invitation Request - Finance Vibe
 
 ## ✨ Key Features
 

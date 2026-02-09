@@ -65,7 +65,7 @@ export function ExpensesTable({ id, title, transactions, limit, spent, onAdd, on
         <div
             ref={setNodeRef}
             className={cn(
-                "flex flex-col border rounded-lg transition-colors overflow-hidden h-full",
+                "flex flex-col border rounded-lg transition-colors h-full overflow-hidden",
                 borderColor,
                 bgColor,
                 isOver && activeColor,
@@ -96,14 +96,6 @@ export function ExpensesTable({ id, title, transactions, limit, spent, onAdd, on
                                 </Tooltip>
                             </TooltipProvider>
 
-                            <Badge variant="outline" className={cn("font-normal flex items-center gap-1", statusColor)}>
-                                {isWarning && !isError && <AlertTriangle className="h-3 w-3" />}
-                                {isError && <AlertTriangle className="h-3 w-3" />}
-                                {remaining < 0
-                                    ? `${Math.abs(remaining).toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 })} over`
-                                    : `${remaining.toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 })} left`
-                                }
-                            </Badge>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -120,13 +112,19 @@ export function ExpensesTable({ id, title, transactions, limit, spent, onAdd, on
                         </div>
                     </div>
 
-                    <div className="flex justify-between items-end mt-4 mb-1">
-                        <div className="text-sm font-bold">
-                            {spent.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
-                            <span className="text-xs font-normal text-muted-foreground ml-1">spent</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                            of {limit.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}
+                    <div className="flex justify-between items-center mt-4 mb-2">
+                        <Badge variant="outline" className={cn("font-semibold px-2 py-0.5 text-xs", statusColor)}>
+                            {isWarning && !isError && <AlertTriangle className="h-3 w-3 mr-1" />}
+                            {isError && <AlertTriangle className="h-3 w-3 mr-1" />}
+                            {remaining < 0
+                                ? `${Math.abs(remaining).toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 })} over`
+                                : `${remaining.toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 })} left`
+                            }
+                        </Badge>
+                        <div className="text-xs font-medium text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full border border-slate-100 dark:border-slate-800">
+                            <span className="font-bold text-foreground">{spent.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}</span>
+                            <span className="mx-1 opacity-70">of</span>
+                            <span>{limit.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}</span>
                         </div>
                     </div>
 
@@ -141,15 +139,15 @@ export function ExpensesTable({ id, title, transactions, limit, spent, onAdd, on
                 </div>
             </div>
 
-            <div className="flex-1 min-h-0 bg-background/30">
-                <Table containerClassName="h-full">
+            <div className="flex-1 min-h-0 bg-background/30 overflow-hidden">
+                <Table containerClassName="h-full overflow-y-auto">
                     <TableHeader className="sticky top-0 bg-background/95 backdrop-blur-sm z-10">
                         <TableRow className="hover:bg-transparent border-b-0">
-                            <TableHead className="w-[30px] border-b"></TableHead>
-                            <TableHead className="border-b">Description</TableHead>
-                            <TableHead className="border-b">Date</TableHead>
-                            <TableHead className="text-right border-b">Amount</TableHead>
-                            <TableHead className="w-[70px] border-b"></TableHead>
+                            <TableHead className="w-[24px] px-2 border-b"></TableHead>
+                            <TableHead className="px-2 border-b">Description</TableHead>
+                            <TableHead className="px-2 border-b">Date</TableHead>
+                            <TableHead className="text-right px-2 border-b">Amount</TableHead>
+                            <TableHead className="w-[70px] px-2 border-b"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -223,12 +221,12 @@ export function TransactionRowContent({
 
     return (
         <>
-            <TableCell className={cn(isOverlay && "w-[50px]")}>
+            <TableCell className={cn("px-2", isOverlay && "w-[40px]")}>
                 <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
                     <GripVertical className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
                 </div>
             </TableCell>
-            <TableCell className={cn("font-medium", isOverlay && "w-[200px]")}>
+            <TableCell className={cn("font-medium px-2", isOverlay && "w-[200px]")}>
                 <div className="flex flex-col">
                     <span>{(transaction.description || "Expense").replace(/ \(Recurring\)+$/g, '')}</span>
                     {transaction.isRecurring && (
@@ -238,11 +236,11 @@ export function TransactionRowContent({
                     )}
                 </div>
             </TableCell>
-            <TableCell className={cn("text-muted-foreground", isOverlay && "w-[150px]")}>{format(new Date(transaction.date), 'MMM d')}</TableCell>
-            <TableCell className={cn("text-right font-mono", isOverlay && "w-[100px]")}>
+            <TableCell className={cn("text-muted-foreground px-2", isOverlay && "w-[150px]")}>{format(new Date(transaction.date), 'MMM d')}</TableCell>
+            <TableCell className={cn("text-right font-mono px-2", isOverlay && "w-[100px]")}>
                 {transaction.amount.toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK' })}
             </TableCell>
-            <TableCell className={cn(isOverlay && "w-[100px]")}>
+            <TableCell className={cn("px-2", isOverlay && "w-[100px]")}>
                 <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity gap-1">
                     {!isOverlay && (
                         <>

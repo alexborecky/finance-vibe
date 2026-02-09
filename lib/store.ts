@@ -26,6 +26,7 @@ function convertDBGoal(dbGoal: any): FinancialGoal {
         type: dbGoal.type,
         deadlineMonths: dbGoal.deadline ? undefined : undefined,
         targetDate: dbGoal.deadline ? new Date(dbGoal.deadline) : undefined,
+        savingStrategy: dbGoal.saving_strategy || undefined,
     };
 }
 
@@ -114,6 +115,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     initialized: false,
 
     setIncomeConfig: async (config, userId) => {
+        const previousConfig = get().incomeConfig;
         set({ incomeConfig: config });
 
         if (userId) {
@@ -138,11 +140,14 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
                 await updateIncomeConfigDB(userId, dbConfig);
             } catch (error) {
                 console.error('Error saving income config:', error);
+                set({ incomeConfig: previousConfig });
+                throw error;
             }
         }
     },
 
     setPreferences: async (prefs, userId) => {
+        const previousPrefs = get().preferences;
         set((state) => ({ preferences: { ...state.preferences, ...prefs } }));
 
         if (userId) {
@@ -151,6 +156,8 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
                 await updatePreferencesDB(userId, currentPrefs);
             } catch (error) {
                 console.error('Error saving preferences:', error);
+                set({ preferences: previousPrefs });
+                throw error;
             }
         }
     },
@@ -169,6 +176,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
                 current_amount: goal.currentAmount || 0,
                 type: goal.type,
                 deadline: goal.targetDate ? goal.targetDate.toISOString().split('T')[0] : null,
+                saving_strategy: goal.savingStrategy || null,
             });
 
             // Replace temp with real
@@ -197,6 +205,9 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             if (updates.type !== undefined) dbUpdates.type = updates.type;
             if (updates.targetDate !== undefined) {
                 dbUpdates.deadline = updates.targetDate ? updates.targetDate.toISOString().split('T')[0] : null;
+            }
+            if (updates.savingStrategy !== undefined) {
+                dbUpdates.saving_strategy = updates.savingStrategy || null;
             }
 
             await updateGoal(id, dbUpdates);

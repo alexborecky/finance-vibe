@@ -47,7 +47,7 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="flex flex-col gap-8 flex-1 min-h-0">
+        <div className="flex flex-col gap-8 flex-1 h-full overflow-y-auto pr-2">
             <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
             </div>

@@ -70,17 +70,30 @@ export function AddTransactionDialog({ children }: { children?: React.ReactNode 
         },
     })
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
-        if (user) {
-            addTransaction({
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    async function onSubmit(values: z.infer<typeof formSchema>) {
+        if (!user) return;
+
+        setIsSubmitting(true)
+        setError(null)
+
+        try {
+            await addTransaction({
                 amount: Number(values.amount),
                 description: values.description,
                 category: values.category as any,
                 date: values.date,
             }, user.id)
+            setOpen(false)
+            form.reset()
+        } catch (e: any) {
+            console.error("Error saving transaction:", e)
+            setError(e.message || "Failed to save transaction.")
+        } finally {
+            setIsSubmitting(false)
         }
-        setOpen(false)
-        form.reset()
     }
 
     return (
@@ -186,8 +199,15 @@ export function AddTransactionDialog({ children }: { children?: React.ReactNode 
                                 </FormItem>
                             )}
                         />
+                        {error && (
+                            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                                {error}
+                            </div>
+                        )}
                         <DialogFooter>
-                            <Button type="submit">Save Transaction</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? "Saving..." : "Save Transaction"}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </Form>
