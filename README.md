@@ -40,6 +40,8 @@ Discover your true saving potential. Our unique formula calculates your final sa
 
 ## 🛠️ Getting Started
 
+Follow these steps to set up Finance Vibe on your local machine.
+
 ### 1. Clone & Install
 ```bash
 git clone https://github.com/alexborecky/finance-vibe.git
@@ -47,7 +49,25 @@ cd finance-vibe
 npm install
 ```
 
-### 2. Run Locally
+### 2. Supabase Setup
+Finance Vibe requires a Supabase project for authentication and data storage.
+1. Create a free project at [supabase.com](https://supabase.com).
+2. Go to **Project Settings > API** and find your **Project URL** and **anon public** key.
+3. In your project root, copy `.env.local.example` to a new file named `.env.local`:
+   ```bash
+   cp .env.local.example .env.local
+   ```
+4. Paste your Supabase credentials into `.env.local`.
+
+> [!TIP]
+> You can easily point your app to a different Supabase project at any time by simply updating the credentials in your `.env.local` file and restarting the dev server.
+
+### 3. Database Migration
+1. In your Supabase dashboard, go to the **SQL Editor**.
+2. Create a **New Query** and paste the contents of the `supabase/schema_enhanced.sql` file.
+3. Click **Run** to set up the necessary tables, RLS policies, and admin roles.
+
+### 4. Run Locally
 ```bash
 npm run dev
 ```
