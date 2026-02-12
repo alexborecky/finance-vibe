@@ -3,7 +3,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Note: We don't initialize top-level to avoid crashes if the key is missing on startup
+let resend: Resend | null = null
+
+function getResend() {
+    if (resend) return resend
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) return null
+    resend = new Resend(apiKey)
+    return resend
+}
 
 export async function inviteUser(email: string, role: 'admin' | 'user') {
     const supabase = await createClient()
@@ -51,7 +60,8 @@ export async function inviteUser(email: string, role: 'admin' | 'user') {
     const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/signup?token=${token}`
 
     try {
-        if (!process.env.RESEND_API_KEY) {
+        const resendClient = getResend()
+        if (!resendClient) {
             console.warn('RESEND_API_KEY is not set. Skipping email send.')
             // We return success here because the DB record was created, but we warn about the email.
             // Ideally, in dev without key, this is "success".
@@ -62,7 +72,7 @@ export async function inviteUser(email: string, role: 'admin' | 'user') {
             }
         }
 
-        const { error: emailError } = await resend.emails.send({
+        const { error: emailError } = await resendClient.emails.send({
             from: process.env.RESEND_FROM_EMAIL || 'Finance Vibe <onboarding@resend.dev>',
             to: email,
             subject: 'You have been invited to Finance Vibe',

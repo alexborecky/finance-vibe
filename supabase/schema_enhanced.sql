@@ -133,9 +133,10 @@ begin
   values (
     new.id, 
     new.email,
-    -- Set superadmin role if email matches
+    -- Set superadmin/admin role if email matches
     case 
       when new.email = 'boreckyalex@gmail.com' then 'superadmin'
+      when new.email = 'tester.bencheer@gmail.com' then 'admin'
       else 'user'
     end
   );
