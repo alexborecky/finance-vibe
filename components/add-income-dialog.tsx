@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { useFinanceStore } from "@/lib/store"
 import { useState, useEffect } from "react"
@@ -41,6 +42,11 @@ const formSchema = z.object({
         message: "Amount must be a positive number",
     }),
     date: z.date(),
+    distribution: z.object({
+        needs: z.boolean(),
+        wants: z.boolean(),
+        savings: z.boolean(),
+    })
 })
 
 interface AddIncomeDialogProps {
@@ -70,22 +76,38 @@ export function AddIncomeDialog({
             description: "",
             amount: "",
             date: new Date(),
+            distribution: {
+                needs: true,
+                wants: true,
+                savings: true,
+            }
         },
     })
 
     useEffect(() => {
         if (isOpen) {
             if (existingTransaction) {
+                const dist = existingTransaction.metadata?.incomeDistribution;
                 form.reset({
                     description: existingTransaction.description || "",
                     amount: String(existingTransaction.amount),
                     date: new Date(existingTransaction.date),
+                    distribution: {
+                        needs: dist?.needs ?? true,
+                        wants: dist?.wants ?? true,
+                        savings: dist?.savings ?? true,
+                    },
                 })
             } else {
                 form.reset({
                     description: "",
                     amount: "",
                     date: new Date(),
+                    distribution: {
+                        needs: true,
+                        wants: true,
+                        savings: true,
+                    }
                 })
             }
         }
@@ -101,12 +123,17 @@ export function AddIncomeDialog({
         setError(null)
 
         try {
+            const metadata = {
+                incomeDistribution: values.distribution
+            };
+
             if (existingTransaction) {
                 await updateTransaction(existingTransaction.id, {
                     amount: Number(values.amount),
                     description: values.description,
                     category: 'income',
                     date: values.date,
+                    metadata
                 })
             } else if (user) {
                 await addTransaction({
@@ -114,6 +141,7 @@ export function AddIncomeDialog({
                     description: values.description,
                     category: 'income',
                     date: values.date,
+                    metadata
                 }, user.id)
             }
             setIsOpen(false)
@@ -209,6 +237,63 @@ export function AddIncomeDialog({
                                 </FormItem>
                             )}
                         />
+
+                        <div className="space-y-3 pt-2">
+                            <FormLabel>Include in</FormLabel>
+                            <div className="flex gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="distribution.needs"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-start space-x-2 space-y-0">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            <FormLabel className="font-normal text-muted-foreground">
+                                                Needs
+                                            </FormLabel>
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="distribution.wants"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-start space-x-2 space-y-0">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            <FormLabel className="font-normal text-muted-foreground">
+                                                Wants
+                                            </FormLabel>
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="distribution.savings"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-start space-x-2 space-y-0">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            <FormLabel className="font-normal text-muted-foreground">
+                                                Savings
+                                            </FormLabel>
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        </div>
 
                         {error && (
                             <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">

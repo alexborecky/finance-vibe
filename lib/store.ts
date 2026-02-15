@@ -27,6 +27,7 @@ function convertDBGoal(dbGoal: any): FinancialGoal {
         deadlineMonths: dbGoal.deadline ? undefined : undefined,
         targetDate: dbGoal.deadline ? new Date(dbGoal.deadline) : undefined,
         savingStrategy: dbGoal.saving_strategy || undefined,
+        metadata: dbGoal.metadata || undefined,
     };
 }
 
@@ -44,6 +45,7 @@ function convertDBTransaction(dbTx: any): Transaction {
         isRecurring: dbTx.is_recurring || false,
         recurringEndDate: dbTx.recurring_end_date ? new Date(dbTx.recurring_end_date) : undefined,
         recurringSourceId: dbTx.recurring_source_id || undefined,
+        metadata: dbTx.metadata || undefined,
     };
 }
 
@@ -155,7 +157,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
                 const currentPrefs = get().preferences;
                 await updatePreferencesDB(userId, currentPrefs);
             } catch (error) {
-                console.error('Error saving preferences:', error);
+                console.error('Error saving preferences:', JSON.stringify(error));
                 set({ preferences: previousPrefs });
                 throw error;
             }
@@ -177,6 +179,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
                 type: goal.type,
                 deadline: goal.targetDate ? goal.targetDate.toISOString().split('T')[0] : null,
                 saving_strategy: goal.savingStrategy || null,
+                metadata: goal.metadata || null,
             });
 
             // Replace temp with real
@@ -209,6 +212,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             if (updates.savingStrategy !== undefined) {
                 dbUpdates.saving_strategy = updates.savingStrategy || null;
             }
+            if (updates.metadata !== undefined) dbUpdates.metadata = updates.metadata;
 
             await updateGoal(id, dbUpdates);
         } catch (error) {
@@ -281,6 +285,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
                 is_recurring: transaction.isRecurring,
                 recurring_end_date: transaction.recurringEndDate ? format(transaction.recurringEndDate, 'yyyy-MM-dd') : null,
                 recurring_source_id: transaction.recurringSourceId || null,
+                metadata: transaction.metadata || null,
             });
 
             set((state) => ({
@@ -310,6 +315,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
                 dbUpdates.recurring_end_date = updates.recurringEndDate ? format(updates.recurringEndDate, 'yyyy-MM-dd') : null;
             }
             if (updates.recurringSourceId !== undefined) dbUpdates.recurring_source_id = updates.recurringSourceId;
+            if (updates.metadata !== undefined) dbUpdates.metadata = updates.metadata;
 
             await updateTransaction(id, dbUpdates);
         } catch (error) {

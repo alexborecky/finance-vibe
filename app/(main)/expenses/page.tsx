@@ -219,6 +219,7 @@ export default function ExpensesPage() {
                         transactions={needsTransactions}
                         limit={buckets.needs}
                         spent={spentNeeds}
+                        incomeDetails={monthDetails}
                         onAdd={() => openAddDialog('need')}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
@@ -230,6 +231,7 @@ export default function ExpensesPage() {
                         transactions={wantsTransactions}
                         limit={buckets.wants}
                         spent={spentWants}
+                        incomeDetails={monthDetails}
                         onAdd={() => openAddDialog('want')}
                         onEdit={handleEdit}
                         onDelete={handleDelete}

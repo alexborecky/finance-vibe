@@ -53,7 +53,7 @@ const formSchema = z.object({
     currentAmount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
         message: "Current amount must be non-negative",
     }),
-    type: z.enum(['short-term', 'long-term']),
+    type: z.enum(['short-term', 'long-term', 'reserve']),
     targetDate: z.date().optional(),
     savingStrategy: z.enum(['recurring-wants', 'lower-savings', 'manual']).optional(),
     createTransaction: z.boolean(),
@@ -218,7 +218,7 @@ export function AddGoalDialog({ existingGoal, children }: AddGoalDialogProps) {
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.error("Goal Form Validation Errors:", errors))} className="space-y-4">
                         <FormField
                             control={form.control}
                             name="type"

@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.5] - 2026-02-15
+
+### Added
+- **Reserve Module**: New module for managing Emergency and Sinking Funds with templates and precise targets.
+- **Milestone Badges**: Tiering badges (1, 3, 6 months) for Emergency Fund progress.
+- **Granular Allocations**: Extra Income can now be allocated to specific 50/30/20 buckets per entry.
+- **Metadata Support**: Flexible JSON metadata added to Goals and Transactions for future-proofing.
+- **Quick Navigation**: Added "Current Month" button to the Expenses month picker.
+
+### Changed
+- **Target Logic**: Emergency Fund "Minimal Target" is now dynamically calculated based on 3 months of recurring Needs.
+- **Improved Logging**: Enhanced error reporting for Supabase services and Zustand store.
+- **Semantic Clarity**: Distinct logic and UI treatment for general Savings Goals vs. Reserve Funds.
+
+### Fixed
+- **Preference Persistence**: Fixed silent failures when saving user preferences by adding detailed error logging.
+- **Goal Type Safety**: Added `reserve` type to the database schema and TypeScript definitions.
+
 ## [0.2.4] - 2026-02-09
 
 ### Added

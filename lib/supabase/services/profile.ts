@@ -78,7 +78,7 @@ export async function updatePreferences(
         .eq('id', userId)
 
     if (error) {
-        console.error('Error updating preferences:', error)
+        console.error('Error updating preferences:', JSON.stringify(error));
         throw error
     }
 }

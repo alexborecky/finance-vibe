@@ -53,6 +53,11 @@ const navItems = [
         icon: PiggyBank,
     },
     {
+        title: "Funds",
+        url: "/funds",
+        icon: Shield,
+    },
+    {
         title: "Assets",
         url: "/assets",
         icon: Briefcase,

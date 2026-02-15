@@ -32,7 +32,12 @@ export async function createGoal(goal: Omit<GoalInsert, 'id' | 'created_at'>): P
         .single()
 
     if (error) {
-        console.error('Error creating goal:', error)
+        console.error('Error creating goal:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+        })
         throw error
     }
 

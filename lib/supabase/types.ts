@@ -98,9 +98,10 @@ export interface Database {
                     title: string
                     target_amount: number
                     current_amount: number
-                    type: 'short-term' | 'long-term'
+                    type: 'short-term' | 'long-term' | 'reserve'
                     deadline: string | null
                     saving_strategy: string | null
+                    metadata: Json | null
                     created_at: string
                 }
                 Insert: {
@@ -109,9 +110,10 @@ export interface Database {
                     title: string
                     target_amount: number
                     current_amount?: number
-                    type: 'short-term' | 'long-term'
+                    type: 'short-term' | 'long-term' | 'reserve'
                     deadline?: string | null
                     saving_strategy?: string | null
+                    metadata?: Json | null
                     created_at?: string
                 }
                 Update: {
@@ -120,9 +122,10 @@ export interface Database {
                     title?: string
                     target_amount?: number
                     current_amount?: number
-                    type?: 'short-term' | 'long-term'
+                    type?: 'short-term' | 'long-term' | 'reserve'
                     deadline?: string | null
                     saving_strategy?: string | null
+                    metadata?: Json | null
                     created_at?: string
                 }
             }
@@ -137,6 +140,7 @@ export interface Database {
                     is_recurring: boolean
                     recurring_end_date: string | null
                     recurring_source_id: string | null
+                    metadata: Json | null
                     created_at: string
                 }
                 Insert: {
@@ -149,6 +153,7 @@ export interface Database {
                     is_recurring?: boolean
                     recurring_end_date?: string | null
                     recurring_source_id?: string | null
+                    metadata?: Json | null
                     created_at?: string
                 }
                 Update: {
@@ -161,6 +166,7 @@ export interface Database {
                     is_recurring?: boolean
                     recurring_end_date?: string | null
                     recurring_source_id?: string | null
+                    metadata?: Json | null
                     created_at?: string
                 }
             }

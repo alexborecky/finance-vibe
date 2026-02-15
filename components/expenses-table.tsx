@@ -22,6 +22,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { MonthlyIncomeDetails } from "@/lib/finance-engine"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { BucketCalculationInfo } from "./bucket-calculation-info"
 
 interface ExpensesTableProps {
     id: 'need' | 'want';
@@ -29,13 +32,14 @@ interface ExpensesTableProps {
     transactions: Transaction[];
     limit: number;
     spent: number;
+    incomeDetails?: MonthlyIncomeDetails;
     onAdd?: () => void;
     onEdit?: (transaction: Transaction) => void;
     onDelete?: (id: string) => void;
     onFixBalance?: () => void;
 }
 
-export function ExpensesTable({ id, title, transactions, limit, spent, onAdd, onEdit, onDelete, onFixBalance }: ExpensesTableProps) {
+export function ExpensesTable({ id, title, transactions, limit, spent, incomeDetails, onAdd, onEdit, onDelete, onFixBalance }: ExpensesTableProps) {
     const { setNodeRef, isOver } = useDroppable({
         id: id,
     })
@@ -113,14 +117,26 @@ export function ExpensesTable({ id, title, transactions, limit, spent, onAdd, on
                     </div>
 
                     <div className="flex justify-between items-center mt-4 mb-2">
-                        <Badge variant="outline" className={cn("font-semibold px-2 py-0.5 text-xs", statusColor)}>
-                            {isWarning && !isError && <AlertTriangle className="h-3 w-3 mr-1" />}
-                            {isError && <AlertTriangle className="h-3 w-3 mr-1" />}
-                            {remaining < 0
-                                ? `${Math.abs(remaining).toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 })} over`
-                                : `${remaining.toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 })} left`
-                            }
-                        </Badge>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Badge variant="outline" className={cn("font-semibold px-2 py-0.5 text-xs cursor-pointer hover:bg-muted transition-colors", statusColor)}>
+                                    {isWarning && !isError && <AlertTriangle className="h-3 w-3 mr-1" />}
+                                    {isError && <AlertTriangle className="h-3 w-3 mr-1" />}
+                                    {remaining < 0
+                                        ? `${Math.abs(remaining).toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 })} over`
+                                        : `${remaining.toLocaleString('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 })} left`
+                                    }
+                                </Badge>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                {incomeDetails && (
+                                    <BucketCalculationInfo
+                                        category={id === 'need' ? 'needs' : 'wants'}
+                                        incomeDetails={incomeDetails}
+                                    />
+                                )}
+                            </PopoverContent>
+                        </Popover>
                         <div className="text-xs font-medium text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full border border-slate-100 dark:border-slate-800">
                             <span className="font-bold text-foreground">{spent.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })}</span>
                             <span className="mx-1 opacity-70">of</span>

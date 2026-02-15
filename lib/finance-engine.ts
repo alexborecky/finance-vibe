@@ -19,10 +19,14 @@ export interface Goal {
     name: string; // Changed from title to match store usage
     targetAmount: number;
     currentAmount: number;
-    type: 'short-term' | 'long-term';
+    type: 'short-term' | 'long-term' | 'reserve';
     deadlineMonths?: number;
     targetDate?: Date;
     savingStrategy?: 'recurring-wants' | 'lower-savings' | 'manual';
+    metadata?: {
+        template?: 'emergency' | 'sinking';
+        [key: string]: any;
+    };
 }
 
 export interface Asset {
@@ -44,6 +48,13 @@ export type Transaction = {
     isRecurring?: boolean;
     recurringEndDate?: Date;
     recurringSourceId?: string;
+    metadata?: {
+        incomeDistribution?: {
+            needs: boolean;
+            wants: boolean;
+            savings: boolean;
+        };
+    };
 }
 
 export interface BucketStatus {
@@ -76,6 +87,12 @@ export const calculateBuckets = (netIncome: number): BudgetBuckets => {
     };
 };
 
+export interface ExtraIncomeAllocation {
+    description: string;
+    amount: number;
+    contribution: BudgetBuckets;
+}
+
 export interface MonthlyIncomeDetails {
     date: Date;
     grossIncome: number;
@@ -85,6 +102,8 @@ export interface MonthlyIncomeDetails {
     billableDays: number;
     extraIncomeTotal: number;
     extraIncomes: Transaction[];
+    extraIncomeAllocations: ExtraIncomeAllocation[];
+    baseBuckets: BudgetBuckets;
     buckets: BudgetBuckets;
 }
 
@@ -230,6 +249,61 @@ export function calculateMonthlyIncomeDetails(
     const extraIncomeTotal = extraIncomes.reduce((sum, t) => sum + t.amount, 0);
     const totalNet = baseNet + extraIncomeTotal;
 
+    // Calculate Base Net Income Buckets (Standard 50/30/20)
+    const baseBuckets = calculateBuckets(baseNet);
+
+    // Initialize buckets with base values
+    const buckets = { ...baseBuckets };
+    const extraIncomeAllocations: ExtraIncomeAllocation[] = [];
+
+    // Distribute Extra Income based on preferences
+    extraIncomes.forEach(income => {
+        const distribution = income.metadata?.incomeDistribution || {
+            needs: true,
+            wants: true,
+            savings: true
+        };
+
+        const totalWeight = (distribution.needs ? 50 : 0) +
+            (distribution.wants ? 30 : 0) +
+            (distribution.savings ? 20 : 0);
+
+        const incomeContribution: BudgetBuckets = { needs: 0, wants: 0, savings: 0 };
+
+        if (totalWeight > 0) {
+            const ratio = income.amount / totalWeight;
+            if (distribution.needs) {
+                const amount = ratio * 50;
+                buckets.needs += amount;
+                incomeContribution.needs = amount;
+            }
+            if (distribution.wants) {
+                const amount = ratio * 30;
+                buckets.wants += amount;
+                incomeContribution.wants = amount;
+            }
+            if (distribution.savings) {
+                const amount = ratio * 20;
+                buckets.savings += amount;
+                incomeContribution.savings = amount;
+            }
+        } else {
+            // Fallback: distribute standard 50/30/20 if nothing selected
+            incomeContribution.needs = income.amount * 0.5;
+            incomeContribution.wants = income.amount * 0.3;
+            incomeContribution.savings = income.amount * 0.2;
+            buckets.needs += incomeContribution.needs;
+            buckets.wants += incomeContribution.wants;
+            buckets.savings += incomeContribution.savings;
+        }
+
+        extraIncomeAllocations.push({
+            description: income.description || "Extra Income",
+            amount: income.amount,
+            contribution: incomeContribution
+        });
+    });
+
     return {
         date,
         grossIncome: baseGross,
@@ -239,7 +313,9 @@ export function calculateMonthlyIncomeDetails(
         billableDays,
         extraIncomeTotal,
         extraIncomes,
-        buckets: calculateBuckets(totalNet)
+        extraIncomeAllocations,
+        baseBuckets,
+        buckets
     };
 }
 

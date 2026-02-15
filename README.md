@@ -1,4 +1,4 @@
-# Finance Vibe 💸 `v0.2.4`
+# Finance Vibe 💸 `v0.2.5`
 
 ![Finance Vibe Hero](./public/images/hero.png)
 

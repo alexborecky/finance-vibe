@@ -11,7 +11,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Trash2, Plus, ArrowRight } from "lucide-react"
+import { Trash2, Plus } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useFinanceStore } from "@/lib/store"
 import { Transaction } from "@/lib/finance-engine"
 import { format, isSameMonth } from "date-fns"
@@ -53,7 +54,30 @@ export function EditExtraIncomeModal({
             description: "New income",
             category: 'income',
             date: date,
+            metadata: {
+                incomeDistribution: {
+                    needs: true,
+                    wants: true,
+                    savings: true
+                }
+            }
         }, user.id)
+    }
+
+    const handleDistributionUpdate = (id: string, currentDistribution: any, key: 'needs' | 'wants' | 'savings', value: boolean) => {
+        const newDistribution = {
+            needs: currentDistribution?.needs ?? true,
+            wants: currentDistribution?.wants ?? true,
+            savings: currentDistribution?.savings ?? true,
+            ...currentDistribution,
+            [key]: value
+        };
+
+        updateTransaction(id, {
+            metadata: {
+                incomeDistribution: newDistribution
+            }
+        });
     }
 
     return (
@@ -110,6 +134,35 @@ export function EditExtraIncomeModal({
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
+                                    </div>
+
+                                    {/* Distribution Checkboxes */}
+                                    <div className="flex items-center gap-4 px-1 pt-1">
+                                        <span className="text-xs text-muted-foreground font-medium">Include in:</span>
+                                        <div className="flex items-center gap-2">
+                                            <Checkbox
+                                                id={`needs-${income.id}`}
+                                                checked={income.metadata?.incomeDistribution?.needs ?? true}
+                                                onCheckedChange={(checked) => handleDistributionUpdate(income.id, income.metadata?.incomeDistribution, 'needs', checked as boolean)}
+                                            />
+                                            <Label htmlFor={`needs-${income.id}`} className="text-xs">Needs</Label>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Checkbox
+                                                id={`wants-${income.id}`}
+                                                checked={income.metadata?.incomeDistribution?.wants ?? true}
+                                                onCheckedChange={(checked) => handleDistributionUpdate(income.id, income.metadata?.incomeDistribution, 'wants', checked as boolean)}
+                                            />
+                                            <Label htmlFor={`wants-${income.id}`} className="text-xs">Wants</Label>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Checkbox
+                                                id={`savings-${income.id}`}
+                                                checked={income.metadata?.incomeDistribution?.savings ?? true}
+                                                onCheckedChange={(checked) => handleDistributionUpdate(income.id, income.metadata?.incomeDistribution, 'savings', checked as boolean)}
+                                            />
+                                            <Label htmlFor={`savings-${income.id}`} className="text-xs">Savings</Label>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
