@@ -1,7 +1,12 @@
+
 import { updateSession } from '@/lib/supabase/middleware'
-import { type NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server' // Import NextResponse
+import { isDemoMode } from '@/lib/utils'
 
 export async function middleware(request: NextRequest) {
+    if (isDemoMode()) {
+        return NextResponse.next()
+    }
     return await updateSession(request)
 }
 

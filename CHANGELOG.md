@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.6] - 2026-02-16
+
+### Added
+- **Demo Mode**: Robust opt-in Demo Mode that allows exploring the application with mock data without requiring a Supabase connection.
+- **Mock Service Layer**: Complete implementation of mock services for Auth, Goals, Transactions, Assets, and Profiles.
+- **Service Switcher Pattern**: New architectural pattern to seamlessly toggle between Supabase and Mock data sources via environment variables.
+- **Demo Visuals**: Added a "Demo Mode" badge indicator to notify users when they are in a simulated session.
+- **Setup Improvements**: Added `.env.example` to simplify local environment setup for new contributors.
+
+### Fixed
+- **Module Resolution**: Fixed "Module not found" errors caused by incorrect import paths during refactoring.
+- **Date Formatting**: Resolved "Invalid time value" crash in the dashboard caused by incorrect date formats in mock data.
+- **State Integrity**: Fixed various runtime errors related to undefined profile and income configurations in the store.
+- **Restored Services**: Restored and verified the integrity of key service files (`goals.ts`, `profile.ts`, `reserves.ts`) after accidental corruption.
+
 ## [0.2.5] - 2026-02-15
 
 ### Added

@@ -10,10 +10,11 @@ import {
     FinanceOverview,
     Asset
 } from './finance-engine';
-import { getGoals, createGoal, updateGoal, deleteGoal, updateGoalProgress } from './supabase/services/goals';
-import { getTransactions, createTransaction, updateTransaction, deleteTransaction } from './supabase/services/transactions';
-import { updateIncomeConfig as updateIncomeConfigDB, updatePreferences as updatePreferencesDB } from './supabase/services/profile';
-import { getAssets, createAsset, updateAsset as updateAssetDB, deleteAsset as deleteAssetDB } from './supabase/services/assets';
+
+import { getGoals, createGoal, updateGoal, deleteGoal, updateGoalProgress } from '@/lib/supabase/services/goals';
+import { getTransactions, createTransaction, updateTransaction, deleteTransaction } from '@/lib/supabase/services/transactions';
+import { updateIncomeConfig as updateIncomeConfigDB, updatePreferences as updatePreferencesDB } from '@/lib/supabase/services/profile';
+import { getAssets, createAsset, updateAsset as updateAssetDB, deleteAsset as deleteAssetDB } from '@/lib/supabase/services/assets';
 import { format } from 'date-fns';
 
 // Helper to convert DB dates to Date objects

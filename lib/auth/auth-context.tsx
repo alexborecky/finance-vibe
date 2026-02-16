@@ -1,9 +1,13 @@
 'use client'
 
+
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/types'
+import { isDemoMode } from '@/lib/utils'
+import { mockAuthService } from '@/lib/demo/mockAuthService'
+import { getProfile } from '@/lib/supabase/services/profile'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
 
@@ -23,19 +27,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true)
     const supabase = createClient()
 
+
     const fetchProfile = async (userId: string) => {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single()
-
-        if (error) {
-            console.error('Error fetching profile:', error)
-            return null
-        }
-
-        return data
+        return getProfile(userId)
     }
 
     const refreshProfile = async () => {
@@ -46,6 +40,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     useEffect(() => {
+        if (isDemoMode()) {
+            mockAuthService.getUser().then(async (mockUser) => {
+                if (mockUser) {
+                    setUser(mockUser)
+                    const profileData = await fetchProfile(mockUser.id)
+                    setProfile(profileData)
+                }
+                setLoading(false)
+            })
+            return
+        }
+
         // Get initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null)
@@ -76,7 +82,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => subscription.unsubscribe()
     }, [])
 
+
     const signOut = async () => {
+        if (isDemoMode()) {
+            await mockAuthService.signOut()
+            // In demo mode, we might want to just reload to reset state or clear user
+            // But since our mock service is simple, we just clear user state here matching the flow
+            setUser(null)
+            setProfile(null)
+            return
+        }
         await supabase.auth.signOut()
         setUser(null)
         setProfile(null)

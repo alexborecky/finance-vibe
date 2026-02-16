@@ -1,4 +1,4 @@
-# Finance Vibe 💸 `v0.2.5`
+# Finance Vibe 💸 `v0.2.6`
 
 ![Finance Vibe Hero](./public/images/hero.png)
 
@@ -62,12 +62,20 @@ Finance Vibe requires a Supabase project for authentication and data storage.
 > [!TIP]
 > You can easily point your app to a different Supabase project at any time by simply updating the credentials in your `.env.local` file and restarting the dev server.
 
-### 3. Database Migration
+### 3. Demo Mode (Optional)
+If you just want to explore the app without setting up Supabase, you can use **Demo Mode**:
+1. Copy `.env.example` to `.env.local`:
+   ```bash
+   cp .env.example .env.local
+   ```
+2. The `NEXT_PUBLIC_DEMO_MODE` variable is set to `true` by default in this file. The app will use mock data and bypass authentication.
+
+### 4. Database Migration (Optional - for real use)
 1. In your Supabase dashboard, go to the **SQL Editor**.
 2. Create a **New Query** and paste the contents of the `supabase/schema_enhanced.sql` file.
 3. Click **Run** to set up the necessary tables, RLS policies, and admin roles.
 
-### 4. Run Locally
+### 5. Run Locally
 ```bash
 npm run dev
 ```

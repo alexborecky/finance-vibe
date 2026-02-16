@@ -1,60 +1,37 @@
-import { createClient } from '@/lib/supabase/client';
-import { Database } from '@/lib/supabase/types';
 
-export async function getAssets(userId: string) {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('assets')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+import { isDemoMode } from '@/lib/utils';
+import * as supabaseService from './assets.supabase';
+import { mockAssetsService } from '@/lib/demo/services/assets';
+import type { Database } from '@/lib/supabase/types';
 
-    if (error) throw error;
-    return data;
-}
+type Asset = Database['public']['Tables']['assets']['Row'];
+type AssetInsert = Database['public']['Tables']['assets']['Insert'];
+type AssetUpdate = Database['public']['Tables']['assets']['Update'];
 
-export async function createAsset(asset: Database['public']['Tables']['assets']['Insert']) {
-    console.log('[Assets Service] Creating asset:', asset);
-    const supabase = createClient();
-    const { data, error } = await (supabase as any)
-        .from('assets')
-        .insert(asset)
-        .select()
-        .single();
-
-    if (error) {
-        console.error('[Assets Service] Error creating asset:', JSON.stringify(error, null, 2));
-        throw error;
+export async function getAssets(userId: string): Promise<Asset[]> {
+    if (isDemoMode()) {
+        return mockAssetsService.getAssets(userId);
     }
+    return supabaseService.getAssets(userId);
+}
 
-    if (!data) {
-        console.warn('[Assets Service] No data returned from insert');
-        throw new Error('Failed to create asset: No data returned from database');
+export async function createAsset(asset: AssetInsert): Promise<Asset> {
+    if (isDemoMode()) {
+        return mockAssetsService.createAsset(asset);
     }
-
-    console.log('[Assets Service] Asset created successfully:', data);
-    return data;
+    return supabaseService.createAsset(asset);
 }
 
-export async function updateAsset(id: string, updates: Database['public']['Tables']['assets']['Update']) {
-    const supabase = createClient();
-    const { data, error } = await (supabase as any)
-        .from('assets')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-    if (error) throw error;
-    return data;
+export async function updateAsset(id: string, updates: AssetUpdate): Promise<Asset> {
+    if (isDemoMode()) {
+        return mockAssetsService.updateAsset(id, updates);
+    }
+    return supabaseService.updateAsset(id, updates);
 }
 
-export async function deleteAsset(id: string) {
-    const supabase = createClient();
-    const { error } = await supabase
-        .from('assets')
-        .delete()
-        .eq('id', id);
-
-    if (error) throw error;
+export async function deleteAsset(id: string): Promise<void> {
+    if (isDemoMode()) {
+        return mockAssetsService.deleteAsset(id);
+    }
+    return supabaseService.deleteAsset(id);
 }
